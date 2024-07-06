@@ -17,7 +17,7 @@ public class ChunkEventListener implements Listener {
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
 
-        loadPlantsFromDatabase(chunk);
+        PlantGrowthManager.getInstance().loadPlantsInChunk(chunk, plugin.getConnection());
     }
 
     @EventHandler
@@ -27,19 +27,9 @@ public class ChunkEventListener implements Listener {
 
         // Check if the chunk is still loaded and accessible
         if (chunk.getWorld().isChunkLoaded(chunk.getX(), chunk.getZ())) {
-            savePlantsToDatabase(chunk);
+            PlantGrowthManager.getInstance().savePlantsInChunk(chunk);
         } else {
 
         }
-    }
-
-    private void loadPlantsFromDatabase(Chunk chunk) {
-        // Load plant data specific to the chunk from the database
-        PlantGrowthManager.getInstance().loadPlantsInChunk(chunk, plugin.getConnection());
-    }
-
-    private void savePlantsToDatabase(Chunk chunk) {
-        // Save plant data specific to the chunk to the database
-        PlantGrowthManager.getInstance().savePlantsInChunk(chunk);
     }
 }

@@ -2,7 +2,6 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
