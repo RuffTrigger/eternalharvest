@@ -28,7 +28,29 @@ public class Plant {
         this.lastUnloaded = lastUnloaded;
     }
 
-    // Getters and setters...
+    public int getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public int getGrowthStage() {
+        return growthStage;
+    }
+
+    public long getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public long getLastUnloaded() {
+        return lastUnloaded;
+    }
 
     @Override
     public String toString() {
