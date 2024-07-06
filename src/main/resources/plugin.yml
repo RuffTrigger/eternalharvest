@@ -1,0 +1,6 @@
+name: EternalHarvest
+version: '${project.version}'
+main: org.rufftrigger.eternalharvest.Main
+description: A plugin to keep track of and grows plants, crops, and trees even when the server is offline.
+api-version: '1.16'
+author: RuffTrigger
