@@ -11,3 +11,4 @@ growth-times:
   jungle_sapling: 1800  # Average growth time in seconds (30 minutes)
   acacia_sapling: 1800  # Average growth time in seconds (30 minutes)
   dark_oak_sapling: 1800  # Average growth time in seconds (30 minutes)
+  debug: false

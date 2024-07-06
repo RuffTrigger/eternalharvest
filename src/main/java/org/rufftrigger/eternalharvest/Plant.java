@@ -3,6 +3,7 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Location;
 
 public class Plant {
+
     private int id;
     private String type;
     private Location location;
@@ -21,10 +22,6 @@ public class Plant {
 
     public int getId() {
         return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
     }
 
     public String getType() {
@@ -57,5 +54,17 @@ public class Plant {
 
     public void setLastUnloaded(long lastUnloaded) {
         this.lastUnloaded = lastUnloaded;
+    }
+
+    @Override
+    public String toString() {
+        return "Plant{" +
+                "id=" + id +
+                ", type='" + type + '\'' +
+                ", location=" + location +
+                ", growthStage=" + growthStage +
+                ", lastUpdated=" + lastUpdated +
+                ", lastUnloaded=" + lastUnloaded +
+                '}';
     }
 }

@@ -84,36 +84,81 @@ public class PlantGrowthManager {
     }
 
     public void updatePlantGrowth(Location location) {
-        long currentTime = System.currentTimeMillis();
-        Plant plant = plants.get(location);
-        if (plant != null) {
-            long elapsedTime = (currentTime - plant.getLastUnloaded()) / 1000; // convert to seconds
-            Material material = Material.valueOf(plant.getType());
-            int averageGrowthTime = growthTimes.getOrDefault(material, 1200); // Default 20 minutes
-            int growthStages = (int) (elapsedTime / (averageGrowthTime / 7)); // 7 stages for crops
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            long currentTime = System.currentTimeMillis();
+            Plant plant = plants.get(location);
+            if (plant != null) {
+                long elapsedTime = (currentTime - plant.getLastUpdated()) / 1000; // convert to seconds
+                Material material = Material.matchMaterial(plant.getType());
+                int growthTime = growthTimes.getOrDefault(material, 0);
 
-            if (growthStages > 0) {
-                Block block = plant.getLocation().getBlock();
-                if (block.getType() == material) {
-                    // Update the plant's growth stage
-                    BlockState state = block.getState();
-                    if (state.getBlockData() instanceof Ageable) {
-                        Ageable ageable = (Ageable) state.getBlockData();
-                        int newGrowthStage = Math.min(plant.getGrowthStage() + growthStages, ageable.getMaximumAge());
-                        ageable.setAge(newGrowthStage);
-                        state.setBlockData(ageable);
-                        state.update(true);
-                        plant.setGrowthStage(newGrowthStage);
-                        plant.setLastUpdated(currentTime);
-                        updatePlantInDatabase(plant);
+                // Update growth stage if enough time has passed
+                if (growthTime > 0) {
+                    int newGrowthStage = plant.getGrowthStage() + (int) (elapsedTime / growthTime);
+                    plant.setGrowthStage(newGrowthStage);
+
+                    // Update block state if applicable
+                    Block block = location.getBlock();
+                    if (block.getType() == material && block.getBlockData() instanceof Ageable) {
+                        Ageable ageable = (Ageable) block.getBlockData();
+                        ageable.setAge(Math.min(newGrowthStage, ageable.getMaximumAge()));
+                        block.setBlockData(ageable);
                     }
+
+                    plant.setLastUpdated(currentTime);
+                    savePlantData(plant);
                 }
             }
+        });
+    }
+
+    public void addPlant(Plant plant) {
+        plants.put(plant.getLocation(), plant);
+        savePlantData(plant);
+    }
+
+    public void removePlant(Location location) {
+        Plant plant = plants.remove(location);
+        if (plant != null) {
+            deletePlantData(plant);
         }
     }
 
-    private void updatePlantInDatabase(Plant plant) {
-        String sql = "UPDATE plant_growth SET growth_stage = ?, last_updated = ?, last_unloaded = ? WHERE id = ?";
+    public void setLastUnloaded(Location location, long unloadTime) {
+        Plant plant = plants.get(location);
+        if (plant != null) {
+            plant.setLastUnloaded(unloadTime);
+            updatePlantData(plant);
+        }
+    }
+
+    public void saveAllPlantData() {
+        for (Plant plant : plants.values()) {
+            savePlantData(plant);
+        }
+    }
+
+    private void savePlantData(Plant plant) {
+        String sql = "REPLACE INTO plant_growth (id, type, location, growth_stage, last_updated, last_unloaded) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, plant.getId());
+            stmt.setString(2, plant.getType());
+            stmt.setString(3, locationToString(plant.getLocation()));
+            stmt.setInt(4, plant.getGrowthStage());
+            stmt.setLong(5, plant.getLastUpdated());
+            stmt.setLong(6, plant.getLastUnloaded());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void updatePlantData(Plant plant) {
+        String sql = "UPDATE plant_growth SET growth_stage = ?, last_updated = ?, last_unloaded = ? " +
+                "WHERE id = ?";
+
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, plant.getGrowthStage());
             stmt.setLong(2, plant.getLastUpdated());
@@ -125,73 +170,26 @@ public class PlantGrowthManager {
         }
     }
 
-    public void saveAllPlantData() {
-        for (Plant plant : plants.values()) {
-            updatePlantInDatabase(plant);
-        }
-    }
-
-    public void addPlant(Plant plant) {
-        plants.put(plant.getLocation(), plant);
-        insertPlantIntoDatabase(plant);
-    }
-
-    public void removePlant(Location location) {
-        Plant removedPlant = plants.remove(location);
-        if (removedPlant != null) {
-            deletePlantFromDatabase(removedPlant);
-        }
-    }
-
-    private void insertPlantIntoDatabase(Plant plant) {
-        String sql = "INSERT INTO plant_growth (type, location, growth_stage, last_updated, last_unloaded) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setString(1, plant.getType());
-            stmt.setString(2, locationToString(plant.getLocation()));
-            stmt.setInt(3, plant.getGrowthStage());
-            stmt.setLong(4, plant.getLastUpdated());
-            stmt.setLong(5, plant.getLastUnloaded());
-            stmt.executeUpdate();
-
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    plant.setId(generatedKeys.getInt(1));
-                }
-            }
-
-            plugin.getLogger().info("Inserted plant data for plant at " + plant.getLocation());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            plugin.getLogger().severe("Failed to insert plant data for plant at " + plant.getLocation());
-        }
-    }
-
-    private void deletePlantFromDatabase(Plant plant) {
+    private void deletePlantData(Plant plant) {
         String sql = "DELETE FROM plant_growth WHERE id = ?";
+
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, plant.getId());
             stmt.executeUpdate();
-            plugin.getLogger().info("Deleted plant data for plant at " + plant.getLocation());
         } catch (SQLException e) {
             e.printStackTrace();
-            plugin.getLogger().severe("Failed to delete plant data for plant at " + plant.getLocation());
         }
     }
 
-    private Location stringToLocation(String str) {
-        String[] parts = str.split(",");
-        return new Location(Bukkit.getWorld(parts[0]), Double.parseDouble(parts[1]), Double.parseDouble(parts[2]), Double.parseDouble(parts[3]));
+    private Location stringToLocation(String locationStr) {
+        String[] parts = locationStr.split(",");
+        double x = Double.parseDouble(parts[0]);
+        double y = Double.parseDouble(parts[1]);
+        double z = Double.parseDouble(parts[2]);
+        return new Location(plugin.getServer().getWorld(parts[3]), x, y, z);
     }
 
     private String locationToString(Location location) {
-        return location.getWorld().getName() + "," + location.getX() + "," + location.getY() + "," + location.getZ();
-    }
-
-    public void setLastUnloaded(Location location, long time) {
-        Plant plant = plants.get(location);
-        if (plant != null) {
-            plant.setLastUnloaded(time);
-            updatePlantInDatabase(plant);
-        }
+        return location.getX() + "," + location.getY() + "," + location.getZ() + "," + location.getWorld().getName();
     }
 }

@@ -1,6 +1,5 @@
 package org.rufftrigger.eternalharvest;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
