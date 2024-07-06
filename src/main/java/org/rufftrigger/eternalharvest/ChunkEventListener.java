@@ -16,14 +16,14 @@ public class ChunkEventListener implements Listener {
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
-        plugin.getLogger().info("Chunk loaded at: " + chunk.getX() + ", " + chunk.getZ());
+
         loadPlantsFromDatabase(chunk);
     }
 
     @EventHandler
     public void onChunkUnload(ChunkUnloadEvent event) {
         Chunk chunk = event.getChunk();
-        plugin.getLogger().info("Chunk unloaded at: " + chunk.getX() + ", " + chunk.getZ());
+
         savePlantsToDatabase(chunk);
     }
 
