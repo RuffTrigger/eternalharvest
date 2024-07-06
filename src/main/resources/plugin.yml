@@ -1,6 +1,6 @@
-name: EternalHarvest
+name: eternalharvest
 version: '${project.version}'
 main: org.rufftrigger.eternalharvest.Main
-description: A plugin to keep track of and grows plants, crops, and trees even when the server is offline.
+description: EternalHarvest is a Bukkit/Spigot plugin designed to simulate the growth of plants (crops, saplings) even when the server is offline or the chunk is unloaded.
 api-version: '1.16'
 author: RuffTrigger
