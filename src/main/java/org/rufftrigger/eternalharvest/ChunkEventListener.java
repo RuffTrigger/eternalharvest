@@ -25,7 +25,7 @@ public class ChunkEventListener implements Listener {
             for (int z = 0; z < 16; z++) {
                 Location location = chunk.getBlock(x, 0, z).getLocation();
                 PlantGrowthManager.getInstance().setLastUnloaded(location, unloadTime);
-                plugin.getLogger().info("Unloaded time set for plant at " + location.toString());
+
             }
         }
     }

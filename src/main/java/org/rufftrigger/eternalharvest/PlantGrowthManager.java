@@ -14,27 +14,32 @@ import java.util.Map;
 
 public class PlantGrowthManager {
 
-    private static PlantGrowthManager instance;
+    private static final PlantGrowthManager INSTANCE = new PlantGrowthManager();
+    private final Map<Location, Plant> plants = new HashMap<>();
+    private final Map<Material, Integer> growthTimes = new HashMap<>();
     private JavaPlugin plugin;
     private Connection connection;
-    private Map<Location, Plant> plants = new HashMap<>();
-    private Map<Material, Integer> growthTimes = new HashMap<>();
 
     private PlantGrowthManager() {}
 
     public static PlantGrowthManager getInstance() {
-        if (instance == null) {
-            instance = new PlantGrowthManager();
-        }
-        return instance;
+        return INSTANCE;
     }
 
     public void initialize(JavaPlugin plugin, Connection connection) {
         this.plugin = plugin;
         this.connection = connection;
+        loadGrowthTimes();
         createDatabaseTable();
-        loadGrowthTimesFromConfig();
         loadAllPlantData();
+    }
+
+    private void loadGrowthTimes() {
+        growthTimes.put(Material.WHEAT, plugin.getConfig().getInt("growth-times.wheat", 1200));
+        growthTimes.put(Material.CARROTS, plugin.getConfig().getInt("growth-times.carrots", 1200));
+        growthTimes.put(Material.POTATOES, plugin.getConfig().getInt("growth-times.potatoes", 1200));
+        growthTimes.put(Material.BEETROOTS, plugin.getConfig().getInt("growth-times.beetroots", 1200));
+        // Add other plants and trees as needed
     }
 
     private void createDatabaseTable() {
@@ -48,17 +53,9 @@ public class PlantGrowthManager {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.execute();
+            plugin.getLogger().info("Database table created.");
         } catch (SQLException e) {
             e.printStackTrace();
-        }
-    }
-
-    private void loadGrowthTimesFromConfig() {
-        for (String key : plugin.getConfig().getConfigurationSection("growth-times").getKeys(false)) {
-            Material material = Material.matchMaterial(key.toUpperCase());
-            if (material != null) {
-                growthTimes.put(material, plugin.getConfig().getInt("growth-times." + key));
-            }
         }
     }
 
@@ -66,15 +63,15 @@ public class PlantGrowthManager {
         String sql = "SELECT * FROM plant_growth";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
+
             while (rs.next()) {
                 int id = rs.getInt("id");
                 String type = rs.getString("type");
-                String locationStr = rs.getString("location");
+                Location location = stringToLocation(rs.getString("location"));
                 int growthStage = rs.getInt("growth_stage");
                 long lastUpdated = rs.getLong("last_updated");
                 long lastUnloaded = rs.getLong("last_unloaded");
 
-                Location location = stringToLocation(locationStr);
                 Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                 plants.put(location, plant);
                 plugin.getLogger().info("Loaded plant: " + plant);
@@ -85,36 +82,37 @@ public class PlantGrowthManager {
     }
 
     public void updatePlantGrowth(Location location) {
+        Plant plant = plants.get(location);
+        if (plant == null) {
+            return;
+        }
 
         long currentTime = System.currentTimeMillis();
-        Plant plant = plants.get(location);
-        if (plant != null) {
-            long elapsedTime = (currentTime - plant.getLastUnloaded()) / 1000; // convert to seconds
-            Material material = Material.matchMaterial(plant.getType());
-            int growthTime = growthTimes.getOrDefault(material, 0);
+        long elapsedTime = (currentTime - plant.getLastUpdated()) / 1000; // Convert milliseconds to seconds
+        Material material = Material.matchMaterial(plant.getType());
+        int growthTime = growthTimes.getOrDefault(material, 0);
 
-            plugin.getLogger().info("Elapsed time: " + elapsedTime + " seconds, Growth time: " + growthTime + " seconds");
+        plugin.getLogger().info("Elapsed time: " + elapsedTime + " seconds, Growth time: " + growthTime + " seconds");
 
-            if (elapsedTime >= growthTime) {
-                int stagesPassed = (int) (elapsedTime / growthTime);
-                int newGrowthStage = Math.min(plant.getGrowthStage() + stagesPassed, getMaxGrowthStage(material));
+        if (elapsedTime >= growthTime) {
+            int stagesPassed = (int) (elapsedTime / growthTime);
+            int newGrowthStage = Math.min(plant.getGrowthStage() + stagesPassed, getMaxGrowthStage(material));
 
-                plugin.getLogger().info("Stages passed: " + stagesPassed + ", New growth stage: " + newGrowthStage);
+            plugin.getLogger().info("Stages passed: " + stagesPassed + ", New growth stage: " + newGrowthStage);
 
-                Block block = location.getBlock();
-                BlockState state = block.getState();
-                if (state.getBlockData() instanceof Ageable) {
-                    Ageable ageable = (Ageable) state.getBlockData();
-                    ageable.setAge(newGrowthStage);
-                    state.setBlockData(ageable);
-                    state.update(true);
+            Block block = location.getBlock();
+            BlockState state = block.getState();
+            if (state.getBlockData() instanceof Ageable) {
+                Ageable ageable = (Ageable) state.getBlockData();
+                ageable.setAge(newGrowthStage);
+                state.setBlockData(ageable);
+                state.update(true);
 
-                    plant.setGrowthStage(newGrowthStage);
-                    plant.setLastUpdated(currentTime);
-                    plants.put(location, plant);
-                    savePlantData(plant);
-                    plugin.getLogger().info("Plant growth updated: " + plant);
-                }
+                plant.setGrowthStage(newGrowthStage);
+                plant.setLastUpdated(currentTime);
+                plants.put(location, plant);
+                savePlantData(plant);
+                plugin.getLogger().info("Plant growth updated: " + plant);
             }
         }
     }
@@ -132,12 +130,14 @@ public class PlantGrowthManager {
     public void addPlant(Plant plant) {
         plants.put(plant.getLocation(), plant);
         savePlantData(plant);
+        plugin.getLogger().info("Plant added: " + plant);
     }
 
     public void removePlant(Location location) {
         Plant plant = plants.remove(location);
         if (plant != null) {
             deletePlantData(plant);
+            plugin.getLogger().info("Plant removed: " + plant);
         }
     }
 
@@ -152,6 +152,7 @@ public class PlantGrowthManager {
             stmt.setLong(5, plant.getLastUpdated());
             stmt.setLong(6, plant.getLastUnloaded());
             stmt.executeUpdate();
+            plugin.getLogger().info("Saved plant data: " + plant);
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -162,6 +163,7 @@ public class PlantGrowthManager {
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, plant.getId());
             stmt.executeUpdate();
+            plugin.getLogger().info("Deleted plant data: " + plant);
         } catch (SQLException e) {
             e.printStackTrace();
         }

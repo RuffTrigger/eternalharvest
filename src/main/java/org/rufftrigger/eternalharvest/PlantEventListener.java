@@ -5,7 +5,6 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -37,23 +36,6 @@ public class PlantEventListener implements Listener {
             plugin.getLogger().info("Plant added to PlantGrowthManager: " + plant);
         } else {
             plugin.getLogger().info("Block placed is not a tracked plant type: " + block.getType());
-        }
-    }
-
-    @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
-        Block block = event.getBlock();
-        Location location = block.getLocation();
-
-        if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS ||
-                block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS ||
-                block.getType().toString().endsWith("_SAPLING")) {
-
-            plugin.getLogger().info("BlockBreakEvent triggered: " + block.getType() + " at " + location);
-
-            PlantGrowthManager.getInstance().removePlant(location);
-
-            plugin.getLogger().info("Plant removed from PlantGrowthManager at " + location);
         }
     }
 }

@@ -44,6 +44,18 @@ public class Plant {
         return lastUnloaded;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
     public void setGrowthStage(int growthStage) {
         this.growthStage = growthStage;
     }
