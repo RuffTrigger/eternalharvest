@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class PlantGrowthManager {
 
@@ -48,21 +49,25 @@ public class PlantGrowthManager {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.execute();
+            plugin.getLogger().info("Created plant_growth table if not exists.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Failed to create plant_growth table", e);
         }
     }
 
     private void loadGrowthTimesFromConfig() {
+        growthTimes.clear(); // Clear existing growth times to reload from config
         for (String key : plugin.getConfig().getConfigurationSection("growth-times").getKeys(false)) {
             Material material = Material.matchMaterial(key.toUpperCase());
             if (material != null) {
                 growthTimes.put(material, plugin.getConfig().getInt("growth-times." + key));
             }
         }
+        plugin.getLogger().info("Loaded growth times from config: " + growthTimes);
     }
 
     private void loadAllPlantData() {
+        plants.clear(); // Clear existing plants to reload from database
         String sql = "SELECT * FROM plant_growth";
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -78,8 +83,9 @@ public class PlantGrowthManager {
                 Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                 plants.put(location, plant);
             }
+            plugin.getLogger().info("Loaded " + plants.size() + " plants from database.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Failed to load plant data from database", e);
         }
     }
 
@@ -93,7 +99,7 @@ public class PlantGrowthManager {
             int growthStages = (int) (elapsedTime / (averageGrowthTime / 7)); // 7 stages for crops
 
             if (growthStages > 0) {
-                Block block = plant.getLocation().getBlock();
+                Block block = location.getBlock();
                 if (block.getType() == material) {
                     // Update the plant's growth stage
                     BlockState state = block.getState();
@@ -106,9 +112,12 @@ public class PlantGrowthManager {
                         plant.setGrowthStage(newGrowthStage);
                         plant.setLastUpdated(currentTime);
                         updatePlantInDatabase(plant);
+                        plugin.getLogger().info("Plant at " + location + " updated to growth stage " + newGrowthStage);
                     }
                 }
             }
+        } else {
+            plugin.getLogger().warning("Plant not found at location " + location);
         }
     }
 
@@ -120,8 +129,9 @@ public class PlantGrowthManager {
             stmt.setLong(3, plant.getLastUnloaded());
             stmt.setInt(4, plant.getId());
             stmt.executeUpdate();
+            plugin.getLogger().info("Updated plant in database with ID " + plant.getId());
         } catch (SQLException e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Failed to update plant in database", e);
         }
     }
 
@@ -129,11 +139,13 @@ public class PlantGrowthManager {
         for (Plant plant : plants.values()) {
             updatePlantInDatabase(plant);
         }
+        plugin.getLogger().info("Saved all plant data to database.");
     }
 
     public void addPlant(Plant plant) {
         plants.put(plant.getLocation(), plant);
         insertPlantIntoDatabase(plant);
+        plugin.getLogger().info("Added plant to manager and database.");
     }
 
     private void insertPlantIntoDatabase(Plant plant) {
@@ -151,8 +163,9 @@ public class PlantGrowthManager {
                     plant.setId(generatedKeys.getInt(1));
                 }
             }
+            plugin.getLogger().info("Inserted new plant into database with ID " + plant.getId());
         } catch (SQLException e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Failed to insert plant into database", e);
         }
     }
 
@@ -170,6 +183,9 @@ public class PlantGrowthManager {
         if (plant != null) {
             plant.setLastUnloaded(time);
             updatePlantInDatabase(plant);
+            plugin.getLogger().info("Updated last unloaded time for plant at " + location + " to " + time);
+        } else {
+            plugin.getLogger().warning("Plant not found at location " + location);
         }
     }
 }
