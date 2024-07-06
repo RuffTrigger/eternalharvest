@@ -2,40 +2,43 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class PlantEventListener implements Listener {
+    private final Main plugin;
 
-    private final JavaPlugin plugin;
-
-    public PlantEventListener(JavaPlugin plugin) {
+    public PlantEventListener(Main plugin) {
         this.plugin = plugin;
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
-        Block block = event.getBlock();
-        plugin.getLogger().info("BlockPlaceEvent triggered: " + block.getType() + " at " + block.getLocation());
+        Location location = event.getBlock().getLocation();
+        Material material = event.getBlock().getType();
+        String type = material.toString();
 
-        if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS ||
-                block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS ||
-                block.getType().toString().endsWith("_SAPLING")) {
-
-            Location location = block.getLocation();
+        if (isTrackedPlantType(material)) {
             long currentTime = System.currentTimeMillis();
-
-            plugin.getLogger().info("Planting detected: " + block.getType() + " at " + location + " at time " + currentTime);
-
-            Plant plant = new Plant(0, block.getType().name(), location, 0, currentTime, currentTime);
+            Plant plant = new Plant(type, location, 0, currentTime, currentTime, plugin);
             PlantGrowthManager.getInstance().addPlant(plant);
-
-            plugin.getLogger().info("Plant added to PlantGrowthManager: " + plant);
+            PlantGrowthManager.getInstance().savePlantData(plant, plugin.getConnection());
+            plugin.getLogger().info("Planting detected: " + plant);
         } else {
-            plugin.getLogger().info("Block placed is not a tracked plant type: " + block.getType());
+            plugin.getLogger().info("Block placed is not a tracked plant type: " + type);
+        }
+    }
+
+    private boolean isTrackedPlantType(Material material) {
+        switch (material) {
+            case BEETROOTS:
+            case CARROTS:
+            case POTATOES:
+            case WHEAT:
+                return true;
+            default:
+                return material.toString().endsWith("_SAPLING");
         }
     }
 }

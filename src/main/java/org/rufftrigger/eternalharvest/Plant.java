@@ -3,7 +3,6 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Location;
 
 public class Plant {
-
     private int id;
     private String type;
     private Location location;
@@ -20,53 +19,16 @@ public class Plant {
         this.lastUnloaded = lastUnloaded;
     }
 
-    public int getId() {
-        return id;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    public int getGrowthStage() {
-        return growthStage;
-    }
-
-    public long getLastUpdated() {
-        return lastUpdated;
-    }
-
-    public long getLastUnloaded() {
-        return lastUnloaded;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setType(String type) {
+    public Plant(String type, Location location, int growthStage, long lastUpdated, long lastUnloaded, Main plugin) {
+        this.id = plugin.generateUniqueId();
         this.type = type;
-    }
-
-    public void setLocation(Location location) {
         this.location = location;
-    }
-
-    public void setGrowthStage(int growthStage) {
         this.growthStage = growthStage;
-    }
-
-    public void setLastUpdated(long lastUpdated) {
         this.lastUpdated = lastUpdated;
-    }
-
-    public void setLastUnloaded(long lastUnloaded) {
         this.lastUnloaded = lastUnloaded;
     }
+
+    // Getters and setters...
 
     @Override
     public String toString() {
