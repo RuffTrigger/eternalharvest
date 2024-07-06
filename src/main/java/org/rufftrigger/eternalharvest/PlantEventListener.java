@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -21,7 +22,10 @@ public class PlantEventListener implements Listener {
         Block block = event.getBlock();
         plugin.getLogger().info("BlockPlaceEvent triggered: " + block.getType() + " at " + block.getLocation());
 
-        if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS || block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS || block.getType().toString().endsWith("_SAPLING")) {
+        if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS ||
+                block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS ||
+                block.getType().toString().endsWith("_SAPLING")) {
+
             Location location = block.getLocation();
             long currentTime = System.currentTimeMillis();
 
@@ -35,6 +39,25 @@ public class PlantEventListener implements Listener {
             plugin.getLogger().info("Block placed is not a tracked plant type: " + block.getType());
         }
     }
+
+    @EventHandler
+    public void onBlockBreak(BlockBreakEvent event) {
+        Block block = event.getBlock();
+        Location location = block.getLocation();
+
+        // Check if the broken block is a tracked plant type
+        if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS ||
+                block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS ||
+                block.getType().toString().endsWith("_SAPLING")) {
+
+            // Log debug information
+            plugin.getLogger().info("BlockBreakEvent triggered: " + block.getType() + " at " + location);
+
+            // Remove the plant from PlantGrowthManager
+            PlantGrowthManager.getInstance().removePlant(location);
+
+            // Log debug message indicating the removal
+            plugin.getLogger().info("Plant removed from PlantGrowthManager at " + location);
+        }
+    }
 }
-
-

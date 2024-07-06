@@ -136,7 +136,13 @@ public class PlantGrowthManager {
         insertPlantIntoDatabase(plant);
     }
 
-    // Inside PlantGrowthManager's insertPlantIntoDatabase method
+    public void removePlant(Location location) {
+        Plant removedPlant = plants.remove(location);
+        if (removedPlant != null) {
+            deletePlantFromDatabase(removedPlant);
+        }
+    }
+
     private void insertPlantIntoDatabase(Plant plant) {
         String sql = "INSERT INTO plant_growth (type, location, growth_stage, last_updated, last_unloaded) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -160,6 +166,17 @@ public class PlantGrowthManager {
         }
     }
 
+    private void deletePlantFromDatabase(Plant plant) {
+        String sql = "DELETE FROM plant_growth WHERE id = ?";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.setInt(1, plant.getId());
+            stmt.executeUpdate();
+            plugin.getLogger().info("Deleted plant data for plant at " + plant.getLocation());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            plugin.getLogger().severe("Failed to delete plant data for plant at " + plant.getLocation());
+        }
+    }
 
     private Location stringToLocation(String str) {
         String[] parts = str.split(",");
