@@ -14,6 +14,9 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Save the default config if it doesn't exist
+        saveDefaultConfig();
+
         // Ensure the plugin data folder exists
         if (!getDataFolder().exists()) {
             getDataFolder().mkdir();

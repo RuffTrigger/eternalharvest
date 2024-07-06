@@ -10,8 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.logging.Level;
-
 public class PlantEventListener implements Listener {
 
     private final JavaPlugin plugin;
@@ -29,8 +27,7 @@ public class PlantEventListener implements Listener {
 
             Plant plant = new Plant(0, block.getType().name(), location, 0, currentTime, currentTime);
             PlantGrowthManager.getInstance().addPlant(plant);
-
-            plugin.getLogger().info("Added plant of type " + plant.getType() + " at " + location);
         }
     }
 }
+
