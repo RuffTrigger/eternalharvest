@@ -26,7 +26,7 @@ public class ChunkEventListener implements Listener {
 
 
         // Check if the chunk is still loaded and accessible
-        if (chunk.isLoaded()) {
+        if (chunk.getWorld().isChunkLoaded(chunk.getX(), chunk.getZ())) {
             savePlantsToDatabase(chunk);
         } else {
 
