@@ -38,7 +38,7 @@ public class ChunkEventListener implements Listener {
             for (int z = 0; z < 16; z++) {
                 Location location = chunk.getBlock(x, 0, z).getLocation();
                 PlantGrowthManager.getInstance().updatePlantGrowth(location);
-                plugin.getLogger().info("Plant growth updated at " + location.toString());
+
             }
         }
     }

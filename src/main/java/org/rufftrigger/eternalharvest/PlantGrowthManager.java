@@ -85,7 +85,6 @@ public class PlantGrowthManager {
     }
 
     public void updatePlantGrowth(Location location) {
-        plugin.getLogger().info("Updating plant growth at location: " + location);
 
         long currentTime = System.currentTimeMillis();
         Plant plant = plants.get(location);
