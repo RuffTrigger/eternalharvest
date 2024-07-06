@@ -136,6 +136,7 @@ public class PlantGrowthManager {
         insertPlantIntoDatabase(plant);
     }
 
+    // Inside PlantGrowthManager's insertPlantIntoDatabase method
     private void insertPlantIntoDatabase(Plant plant) {
         String sql = "INSERT INTO plant_growth (type, location, growth_stage, last_updated, last_unloaded) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -151,10 +152,14 @@ public class PlantGrowthManager {
                     plant.setId(generatedKeys.getInt(1));
                 }
             }
+
+            plugin.getLogger().info("Inserted plant data for plant at " + plant.getLocation());
         } catch (SQLException e) {
             e.printStackTrace();
+            plugin.getLogger().severe("Failed to insert plant data for plant at " + plant.getLocation());
         }
     }
+
 
     private Location stringToLocation(String str) {
         String[] parts = str.split(",");
