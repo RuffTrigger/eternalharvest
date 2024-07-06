@@ -1,7 +1,6 @@
 package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Location;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -99,5 +98,42 @@ public class PlantGrowthManager {
             e.printStackTrace();
         }
         return maxId;
+    }
+
+    public void loadPlantsInChunk(org.bukkit.Chunk chunk, Connection connection) {
+        // Load plant data specific to the chunk from the database
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT * FROM plants WHERE world=? AND x=? AND z=?")) {
+            stmt.setString(1, chunk.getWorld().getName());
+            stmt.setInt(2, chunk.getX());
+            stmt.setInt(3, chunk.getZ());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String type = rs.getString("type");
+                String world = rs.getString("world");
+                double x = rs.getDouble("x");
+                double y = rs.getDouble("y");
+                double z = rs.getDouble("z");
+                int growthStage = rs.getInt("growth_stage");
+                long lastUpdated = rs.getLong("last_updated");
+                long lastUnloaded = rs.getLong("last_unloaded");
+
+                Plant plant = new Plant(id, type, new Location(chunk.getWorld(), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                addPlant(plant);
+                logger.info("Loaded plant: " + plant);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void savePlantsInChunk(org.bukkit.Chunk chunk) {
+        // Save plant data specific to the chunk to the database
+        for (Plant plant : plantMap.values()) {
+            if (plant.getLocation().getChunk().equals(chunk)) {
+                savePlantData(plant, Main.getPlugin(Main.class).getConnection());
+            }
+        }
     }
 }

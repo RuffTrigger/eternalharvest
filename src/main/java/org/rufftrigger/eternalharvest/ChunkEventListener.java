@@ -28,12 +28,12 @@ public class ChunkEventListener implements Listener {
     }
 
     private void loadPlantsFromDatabase(Chunk chunk) {
-        // Implement this method to load plant data from the database for the chunk
-        PlantGrowthManager.getInstance().loadAllPlantData(plugin.getConnection());
+        // Load plant data specific to the chunk from the database
+        PlantGrowthManager.getInstance().loadPlantsInChunk(chunk, plugin.getConnection());
     }
 
     private void savePlantsToDatabase(Chunk chunk) {
-        // Implement this method to save plant data to the database for the chunk
-        PlantGrowthManager.getInstance().saveAllPlantData();
+        // Save plant data specific to the chunk to the database
+        PlantGrowthManager.getInstance().savePlantsInChunk(chunk);
     }
 }

@@ -32,24 +32,48 @@ public class Plant {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getType() {
         return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 
     public Location getLocation() {
         return location;
     }
 
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
     public int getGrowthStage() {
         return growthStage;
+    }
+
+    public void setGrowthStage(int growthStage) {
+        this.growthStage = growthStage;
     }
 
     public long getLastUpdated() {
         return lastUpdated;
     }
 
+    public void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
+
     public long getLastUnloaded() {
         return lastUnloaded;
+    }
+
+    public void setLastUnloaded(long lastUnloaded) {
+        this.lastUnloaded = lastUnloaded;
     }
 
     @Override
