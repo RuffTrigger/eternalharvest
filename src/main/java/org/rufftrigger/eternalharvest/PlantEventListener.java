@@ -1,6 +1,5 @@
 package org.rufftrigger.eternalharvest;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -46,18 +45,14 @@ public class PlantEventListener implements Listener {
         Block block = event.getBlock();
         Location location = block.getLocation();
 
-        // Check if the broken block is a tracked plant type
         if (block.getType() == Material.WHEAT || block.getType() == Material.CARROTS ||
                 block.getType() == Material.POTATOES || block.getType() == Material.BEETROOTS ||
                 block.getType().toString().endsWith("_SAPLING")) {
 
-            // Log debug information
             plugin.getLogger().info("BlockBreakEvent triggered: " + block.getType() + " at " + location);
 
-            // Remove the plant from PlantGrowthManager
             PlantGrowthManager.getInstance().removePlant(location);
 
-            // Log debug message indicating the removal
             plugin.getLogger().info("Plant removed from PlantGrowthManager at " + location);
         }
     }

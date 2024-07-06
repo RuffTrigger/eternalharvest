@@ -36,20 +36,20 @@ public class Plant {
         return growthStage;
     }
 
-    public void setGrowthStage(int growthStage) {
-        this.growthStage = growthStage;
-    }
-
     public long getLastUpdated() {
         return lastUpdated;
     }
 
-    public void setLastUpdated(long lastUpdated) {
-        this.lastUpdated = lastUpdated;
-    }
-
     public long getLastUnloaded() {
         return lastUnloaded;
+    }
+
+    public void setGrowthStage(int growthStage) {
+        this.growthStage = growthStage;
+    }
+
+    public void setLastUpdated(long lastUpdated) {
+        this.lastUpdated = lastUpdated;
     }
 
     public void setLastUnloaded(long lastUnloaded) {

@@ -1,14 +1,15 @@
 # src/main/resources/config.yml
 
 growth-times:
-  wheat: 1200  # Average growth time in seconds (20 minutes)
-  carrots: 1200  # Average growth time in seconds (20 minutes)
-  potatoes: 1200  # Average growth time in seconds (20 minutes)
-  beetroots: 1200  # Average growth time in seconds (20 minutes)
-  oak_sapling: 1800  # Average growth time in seconds (30 minutes)
-  spruce_sapling: 1800  # Average growth time in seconds (30 minutes)
-  birch_sapling: 1800  # Average growth time in seconds (30 minutes)
-  jungle_sapling: 1800  # Average growth time in seconds (30 minutes)
-  acacia_sapling: 1800  # Average growth time in seconds (30 minutes)
-  dark_oak_sapling: 1800  # Average growth time in seconds (30 minutes)
+  wheat: 60
+  carrots: 60
+  potatoes: 60
+  beetroots: 60
+  oak_sapling: 300
+  birch_sapling: 300
+  spruce_sapling: 300
+  jungle_sapling: 300
+  acacia_sapling: 300
+  dark_oak_sapling: 300
   debug: false
+

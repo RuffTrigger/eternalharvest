@@ -21,12 +21,11 @@ public class ChunkEventListener implements Listener {
         Chunk chunk = event.getChunk();
         long unloadTime = System.currentTimeMillis();
 
-        // Save unload time for all plants in this chunk
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 Location location = chunk.getBlock(x, 0, z).getLocation();
                 PlantGrowthManager.getInstance().setLastUnloaded(location, unloadTime);
-
+                plugin.getLogger().info("Unloaded time set for plant at " + location.toString());
             }
         }
     }
@@ -35,11 +34,11 @@ public class ChunkEventListener implements Listener {
     public void onChunkLoad(ChunkLoadEvent event) {
         Chunk chunk = event.getChunk();
 
-        // Update plant growth for all plants in this chunk
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 Location location = chunk.getBlock(x, 0, z).getLocation();
                 PlantGrowthManager.getInstance().updatePlantGrowth(location);
+                plugin.getLogger().info("Plant growth updated at " + location.toString());
             }
         }
     }

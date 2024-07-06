@@ -77,6 +77,7 @@ public class PlantGrowthManager {
                 Location location = stringToLocation(locationStr);
                 Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                 plants.put(location, plant);
+                plugin.getLogger().info("Loaded plant: " + plant);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -84,32 +85,49 @@ public class PlantGrowthManager {
     }
 
     public void updatePlantGrowth(Location location) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            long currentTime = System.currentTimeMillis();
-            Plant plant = plants.get(location);
-            if (plant != null) {
-                long elapsedTime = (currentTime - plant.getLastUpdated()) / 1000; // convert to seconds
-                Material material = Material.matchMaterial(plant.getType());
-                int growthTime = growthTimes.getOrDefault(material, 0);
+        plugin.getLogger().info("Updating plant growth at location: " + location);
 
-                // Update growth stage if enough time has passed
-                if (growthTime > 0) {
-                    int newGrowthStage = plant.getGrowthStage() + (int) (elapsedTime / growthTime);
+        long currentTime = System.currentTimeMillis();
+        Plant plant = plants.get(location);
+        if (plant != null) {
+            long elapsedTime = (currentTime - plant.getLastUnloaded()) / 1000; // convert to seconds
+            Material material = Material.matchMaterial(plant.getType());
+            int growthTime = growthTimes.getOrDefault(material, 0);
+
+            plugin.getLogger().info("Elapsed time: " + elapsedTime + " seconds, Growth time: " + growthTime + " seconds");
+
+            if (elapsedTime >= growthTime) {
+                int stagesPassed = (int) (elapsedTime / growthTime);
+                int newGrowthStage = Math.min(plant.getGrowthStage() + stagesPassed, getMaxGrowthStage(material));
+
+                plugin.getLogger().info("Stages passed: " + stagesPassed + ", New growth stage: " + newGrowthStage);
+
+                Block block = location.getBlock();
+                BlockState state = block.getState();
+                if (state.getBlockData() instanceof Ageable) {
+                    Ageable ageable = (Ageable) state.getBlockData();
+                    ageable.setAge(newGrowthStage);
+                    state.setBlockData(ageable);
+                    state.update(true);
+
                     plant.setGrowthStage(newGrowthStage);
-
-                    // Update block state if applicable
-                    Block block = location.getBlock();
-                    if (block.getType() == material && block.getBlockData() instanceof Ageable) {
-                        Ageable ageable = (Ageable) block.getBlockData();
-                        ageable.setAge(Math.min(newGrowthStage, ageable.getMaximumAge()));
-                        block.setBlockData(ageable);
-                    }
-
                     plant.setLastUpdated(currentTime);
+                    plants.put(location, plant);
                     savePlantData(plant);
+                    plugin.getLogger().info("Plant growth updated: " + plant);
                 }
             }
-        });
+        }
+    }
+
+    public void setLastUnloaded(Location location, long time) {
+        Plant plant = plants.get(location);
+        if (plant != null) {
+            plant.setLastUnloaded(time);
+            plants.put(location, plant);
+            savePlantData(plant);
+            plugin.getLogger().info("Set last unloaded time for plant: " + plant);
+        }
     }
 
     public void addPlant(Plant plant) {
@@ -124,24 +142,9 @@ public class PlantGrowthManager {
         }
     }
 
-    public void setLastUnloaded(Location location, long unloadTime) {
-        Plant plant = plants.get(location);
-        if (plant != null) {
-            plant.setLastUnloaded(unloadTime);
-            updatePlantData(plant);
-        }
-    }
-
-    public void saveAllPlantData() {
-        for (Plant plant : plants.values()) {
-            savePlantData(plant);
-        }
-    }
-
     private void savePlantData(Plant plant) {
-        String sql = "REPLACE INTO plant_growth (id, type, location, growth_stage, last_updated, last_unloaded) " +
+        String sql = "INSERT OR REPLACE INTO plant_growth (id, type, location, growth_stage, last_updated, last_unloaded) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
-
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, plant.getId());
             stmt.setString(2, plant.getType());
@@ -155,24 +158,8 @@ public class PlantGrowthManager {
         }
     }
 
-    private void updatePlantData(Plant plant) {
-        String sql = "UPDATE plant_growth SET growth_stage = ?, last_updated = ?, last_unloaded = ? " +
-                "WHERE id = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
-            stmt.setInt(1, plant.getGrowthStage());
-            stmt.setLong(2, plant.getLastUpdated());
-            stmt.setLong(3, plant.getLastUnloaded());
-            stmt.setInt(4, plant.getId());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void deletePlantData(Plant plant) {
         String sql = "DELETE FROM plant_growth WHERE id = ?";
-
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setInt(1, plant.getId());
             stmt.executeUpdate();
@@ -181,15 +168,31 @@ public class PlantGrowthManager {
         }
     }
 
-    private Location stringToLocation(String locationStr) {
-        String[] parts = locationStr.split(",");
-        double x = Double.parseDouble(parts[0]);
-        double y = Double.parseDouble(parts[1]);
-        double z = Double.parseDouble(parts[2]);
-        return new Location(plugin.getServer().getWorld(parts[3]), x, y, z);
+    public void saveAllPlantData() {
+        for (Plant plant : plants.values()) {
+            savePlantData(plant);
+        }
+    }
+
+    private Location stringToLocation(String str) {
+        String[] parts = str.split(",");
+        return new Location(Bukkit.getWorld(parts[0]), Double.parseDouble(parts[1]),
+                Double.parseDouble(parts[2]), Double.parseDouble(parts[3]));
     }
 
     private String locationToString(Location location) {
-        return location.getX() + "," + location.getY() + "," + location.getZ() + "," + location.getWorld().getName();
+        return location.getWorld().getName() + "," + location.getX() + "," + location.getY() + "," + location.getZ();
+    }
+
+    private int getMaxGrowthStage(Material material) {
+        switch (material) {
+            case WHEAT:
+            case CARROTS:
+            case POTATOES:
+            case BEETROOTS:
+                return 7;
+            default:
+                return 0;
+        }
     }
 }
