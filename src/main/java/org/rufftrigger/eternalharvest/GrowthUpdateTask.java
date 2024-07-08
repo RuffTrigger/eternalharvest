@@ -1,6 +1,7 @@
 package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -53,18 +54,27 @@ public class GrowthUpdateTask extends BukkitRunnable {
             Location location = LocationUtil.fromString(plant.getLocation());
 
             if (location != null) {
+                Chunk chunk = location.getChunk();
+                boolean wasLoaded = chunk.isLoaded();
+
+                if (!wasLoaded) {
+                    chunk.load();
+                }
+
                 Block block = location.getBlock();
 
-                if (block.getType() == plant.getMaterial()) {
-                    if (block.getBlockData() instanceof Ageable) {
-                        Ageable ageable = (Ageable) block.getBlockData();
-                        int maxAge = ageable.getMaximumAge();
-                        int newAge = (int) ((growthProgress / 100.0) * maxAge);
-                        ageable.setAge(newAge);
-                        block.setBlockData(ageable);
+                if (block.getType() == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
+                    Ageable ageable = (Ageable) block.getBlockData();
+                    int maxAge = ageable.getMaximumAge();
+                    int newAge = (int) ((growthProgress / 100.0) * maxAge);
+                    ageable.setAge(newAge);
+                    block.setBlockData(ageable);
 
-                        Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
-                    }
+                    Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                }
+
+                if (!wasLoaded) {
+                    chunk.unload();
                 }
             }
         });
