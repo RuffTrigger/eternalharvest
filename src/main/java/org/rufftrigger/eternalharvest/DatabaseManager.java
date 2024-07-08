@@ -34,7 +34,8 @@ public class DatabaseManager {
                             "material TEXT," +
                             "growth_time INTEGER," +
                             "plant_timestamp INTEGER," +
-                            "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                            "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
+                            "growth_progress INTEGER DEFAULT 0" +  // Add growth_progress column with default value
                             ");"
             );
             createTableStatement.executeUpdate();
