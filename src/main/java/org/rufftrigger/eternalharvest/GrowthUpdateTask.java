@@ -76,7 +76,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 if (isSapling(material) && growthProgress == 100) {
                     // Apply bonemeal until sapling grows into a tree
                     while (block.getType() == material && block.getBlockData() instanceof Sapling) {
-                        block.getWorld().generateTree(block.getLocation(), TreeType.valueOf(material.name()));
+                        block.getWorld().generateTree(block.getLocation(), null); // Use null for TreeType to let Bukkit decide based on sapling type
                         Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + " using bonemeal.");
                     }
                 }
@@ -91,5 +91,6 @@ public class GrowthUpdateTask extends BukkitRunnable {
     private boolean isSapling(Material material) {
         return material.name().endsWith("_SAPLING");
     }
+
 
 }
