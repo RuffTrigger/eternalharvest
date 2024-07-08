@@ -17,7 +17,7 @@ public class DatabaseManager {
 
     public void setupDatabase() {
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:" + Main.getInstance().getDataFolder() + "/data.db");
+            connection = DriverManager.getConnection("jdbc:sqlite:" + Main.getInstance().getDataFolder() + "/plant_growth.db");
 
             // Create table if not exists
             PreparedStatement createTableStatement = connection.prepareStatement(
