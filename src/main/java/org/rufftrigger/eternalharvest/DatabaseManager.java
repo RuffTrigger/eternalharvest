@@ -10,10 +10,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DatabaseManager {
 
     private Connection connection;
+    private Logger logger;
+
+    public DatabaseManager() {
+        this.logger = Main.getInstance().getLogger();
+    }
 
     public void setupDatabase() {
         try {
@@ -32,8 +39,9 @@ public class DatabaseManager {
             );
             createTableStatement.executeUpdate();
             createTableStatement.close();
+            logger.info("Database setup completed.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error setting up database.", e);
         }
     }
 
@@ -51,8 +59,9 @@ public class DatabaseManager {
                     insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
                     insertStatement.executeUpdate();
                     insertStatement.close();
+                    logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    logger.log(Level.SEVERE, "Error recording planting.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -70,8 +79,9 @@ public class DatabaseManager {
                     deleteStatement.setString(2, material.toString());
                     deleteStatement.executeUpdate();
                     deleteStatement.close();
+                    logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    logger.log(Level.SEVERE, "Error recording removal.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -95,8 +105,9 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
+            logger.info("Retrieved " + plants.size() + " plants from database.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error retrieving plants from database.", e);
         }
         return plants;
     }
@@ -113,8 +124,9 @@ public class DatabaseManager {
                     updateStatement.setInt(2, id);
                     updateStatement.executeUpdate();
                     updateStatement.close();
+                    logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    logger.log(Level.SEVERE, "Error updating growth progress.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -124,9 +136,10 @@ public class DatabaseManager {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
+                logger.info("Database connection closed.");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Error closing database connection.", e);
         }
     }
 }
