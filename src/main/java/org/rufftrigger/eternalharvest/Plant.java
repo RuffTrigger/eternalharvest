@@ -19,14 +19,7 @@ public class Plant {
         this.lastUnloaded = lastUnloaded;
     }
 
-    public Plant(String type, Location location, int growthStage, long lastUpdated, long lastUnloaded, Main plugin) {
-        this.id = plugin.generateUniqueId();
-        this.type = type;
-        this.location = location;
-        this.growthStage = growthStage;
-        this.lastUpdated = lastUpdated;
-        this.lastUnloaded = lastUnloaded;
-    }
+    // Getters and setters (if needed) for the fields
 
     public int getId() {
         return id;

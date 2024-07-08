@@ -133,11 +133,11 @@ public class PlantGrowthManager {
                     stmt.setInt(3, chunk.getX() * 16 + 15);
                     stmt.setInt(4, chunk.getZ() * 16);
                     stmt.setInt(5, chunk.getZ() * 16 + 15);
+
                     try (ResultSet rs = stmt.executeQuery()) {
                         while (rs.next()) {
                             int id = rs.getInt("id");
                             String type = rs.getString("type");
-                            String world = rs.getString("world");
                             double x = rs.getDouble("x");
                             double y = rs.getDouble("y");
                             double z = rs.getDouble("z");
@@ -145,10 +145,10 @@ public class PlantGrowthManager {
                             long lastUpdated = rs.getLong("last_updated");
                             long lastUnloaded = rs.getLong("last_unloaded");
 
-                            Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                            Location location = new Location(chunk.getWorld(), x, y, z);
+                            Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                             plantMap.put(id, plant);
-                            updateGrowthState(plant);
-                            logger.info("Loaded plant from database into chunk: " + plant);
+                            logger.info("Loaded plant from chunk: " + plant);
                         }
                     }
                 } catch (SQLException e) {
@@ -156,16 +156,5 @@ public class PlantGrowthManager {
                 }
             }
         }.runTaskAsynchronously(Main.getPlugin(Main.class));
-    }
-
-    private void updateGrowthState(Plant plant) {
-        // Implement the logic to update the plant's growth state based on the time elapsed
-        long currentTime = System.currentTimeMillis();
-        long timeElapsed = currentTime - plant.getLastUpdated();
-
-        // Example: Update growth stage based on time elapsed (this logic can be customized)
-        int growthStagesPassed = (int) (timeElapsed / 60000); // Assume each growth stage takes 1 minute
-        plant.setGrowthStage(plant.getGrowthStage() + growthStagesPassed);
-        plant.setLastUpdated(currentTime);
     }
 }

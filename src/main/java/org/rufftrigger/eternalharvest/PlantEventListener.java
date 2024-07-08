@@ -21,7 +21,7 @@ public class PlantEventListener implements Listener {
 
         if (isTrackedPlantType(material)) {
             long currentTime = System.currentTimeMillis();
-            Plant plant = new Plant(material.toString(), location, 0, currentTime, currentTime, plugin);
+            Plant plant = new Plant(0, material.toString(), location, 0, currentTime, currentTime);
 
             // Save plant asynchronously
             new BukkitRunnable() {
