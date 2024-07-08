@@ -47,11 +47,15 @@ public class DatabaseManager {
                     "material TEXT," +
                     "growth_time INTEGER," +
                     "plant_timestamp INTEGER," +
+                    "growth_progress INTEGER DEFAULT 0," +
                     "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
                     ");";
             try (PreparedStatement createTableStatement = connection.prepareStatement(createTableSQL)) {
                 createTableStatement.executeUpdate();
             }
+
+            // Ensure growth_progress column exists
+            ensureGrowthProgressColumnExists();
 
             logger.info("Database setup completed.");
         } catch (SQLException | IOException e) {
@@ -69,6 +73,31 @@ public class DatabaseManager {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating database file.", e);
             throw e;
+        }
+    }
+
+    private void ensureGrowthProgressColumnExists() {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "PRAGMA table_info(plant_data);");
+             ResultSet resultSet = statement.executeQuery()) {
+
+            boolean columnExists = false;
+            while (resultSet.next()) {
+                if ("growth_progress".equalsIgnoreCase(resultSet.getString("name"))) {
+                    columnExists = true;
+                    break;
+                }
+            }
+
+            if (!columnExists) {
+                try (PreparedStatement alterTableStatement = connection.prepareStatement(
+                        "ALTER TABLE plant_data ADD COLUMN growth_progress INTEGER DEFAULT 0;")) {
+                    alterTableStatement.executeUpdate();
+                    logger.info("Added growth_progress column to plant_data table.");
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Error ensuring growth_progress column exists.", e);
         }
     }
 
@@ -126,6 +155,7 @@ public class DatabaseManager {
                         Material.valueOf(resultSet.getString("material")),
                         resultSet.getInt("growth_time"),
                         resultSet.getLong("plant_timestamp"),
+                        resultSet.getInt("growth_progress"),  // Add this line to retrieve growth_progress
                         resultSet.getTimestamp("last_updated").getTime()
                 );
                 plants.add(plant);

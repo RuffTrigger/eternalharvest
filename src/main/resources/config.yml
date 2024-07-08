@@ -1,5 +1,6 @@
 # src/main/resources/config.yml
 
+update-interval-seconds: 60
 growth-times:
   wheat: 60
   carrots: 60

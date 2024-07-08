@@ -3,10 +3,6 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Main extends JavaPlugin {
@@ -14,11 +10,19 @@ public class Main extends JavaPlugin {
     private static Main instance;
     private DatabaseManager databaseManager;
     private Logger logger;
+    private int updateIntervalSeconds; // Store the update interval
 
     @Override
     public void onEnable() {
         instance = this;
         logger = getLogger();
+
+        // Save default config if not exists
+        this.saveDefaultConfig();
+        logger.info("Configurations saved.");
+
+        // Load config values
+        loadConfigValues();
 
         // Initialize database
         this.databaseManager = new DatabaseManager();
@@ -30,13 +34,8 @@ public class Main extends JavaPlugin {
         logger.info("Event listeners registered.");
 
         // Start growth update task
-        int updateIntervalSeconds = 300; // Update every 5 minutes
         new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
-        logger.info("Growth update task started.");
-
-        // Save default config if not exists
-        this.saveDefaultConfig();
-        logger.info("Configurations saved.");
+        logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
     }
 
     @Override
@@ -49,6 +48,11 @@ public class Main extends JavaPlugin {
         }
 
         logger.info("Plugin disabled.");
+    }
+
+    private void loadConfigValues() {
+        // Load update interval from config.yml
+        this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
     }
 
     public static Main getInstance() {
