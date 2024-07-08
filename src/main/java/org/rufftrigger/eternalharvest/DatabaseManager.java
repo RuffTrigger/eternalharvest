@@ -5,11 +5,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -54,9 +50,6 @@ public class DatabaseManager {
                 createTableStatement.executeUpdate();
             }
 
-            // Ensure growth_progress column exists
-            ensureGrowthProgressColumnExists();
-
             logger.info("Database setup completed.");
         } catch (SQLException | IOException e) {
             logger.log(Level.SEVERE, "Error setting up database.", e);
@@ -73,31 +66,6 @@ public class DatabaseManager {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Error creating database file.", e);
             throw e;
-        }
-    }
-
-    private void ensureGrowthProgressColumnExists() {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "PRAGMA table_info(plant_data);");
-             ResultSet resultSet = statement.executeQuery()) {
-
-            boolean columnExists = false;
-            while (resultSet.next()) {
-                if ("growth_progress".equalsIgnoreCase(resultSet.getString("name"))) {
-                    columnExists = true;
-                    break;
-                }
-            }
-
-            if (!columnExists) {
-                try (PreparedStatement alterTableStatement = connection.prepareStatement(
-                        "ALTER TABLE plant_data ADD COLUMN growth_progress INTEGER DEFAULT 0;")) {
-                    alterTableStatement.executeUpdate();
-                    logger.info("Added growth_progress column to plant_data table.");
-                }
-            }
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error ensuring growth_progress column exists.", e);
         }
     }
 
@@ -155,7 +123,7 @@ public class DatabaseManager {
                         Material.valueOf(resultSet.getString("material")),
                         resultSet.getInt("growth_time"),
                         resultSet.getLong("plant_timestamp"),
-                        resultSet.getInt("growth_progress"),  // Add this line to retrieve growth_progress
+                        resultSet.getInt("growth_progress"),
                         resultSet.getTimestamp("last_updated").getTime()
                 );
                 plants.add(plant);
@@ -175,7 +143,7 @@ public class DatabaseManager {
             public void run() {
                 try {
                     PreparedStatement updateStatement = connection.prepareStatement(
-                            "UPDATE plant_data SET growth_progress = ? WHERE id = ?;"
+                            "UPDATE plant_data SET growth_progress = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?;"
                     );
                     updateStatement.setInt(1, growthProgress);
                     updateStatement.setInt(2, id);

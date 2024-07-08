@@ -1,8 +1,8 @@
 package org.rufftrigger.eternalharvest;
 
+import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.sql.SQLException;
 import java.util.List;
 
 public class GrowthUpdateTask extends BukkitRunnable {
@@ -32,8 +32,14 @@ public class GrowthUpdateTask extends BukkitRunnable {
             // Calculate growth progress
             int growthProgress = (int) ((double) elapsedTimeSeconds / growthTime * 100);
 
+            // Ensure growthProgress does not exceed 100%
+            growthProgress = Math.min(growthProgress, 100);
+
             // Update growth progress in the database
             databaseManager.updateGrowthProgress(plant.getId(), growthProgress);
+
+            // Optionally, apply growth effects in the game world
+            // You may need to run this part on the main thread using Bukkit.getScheduler().runTask()
         }
     }
 }

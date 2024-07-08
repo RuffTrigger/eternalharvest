@@ -2,14 +2,15 @@
 
 update-interval-seconds: 60
 growth-times:
-  wheat: 60
-  carrots: 60
-  potatoes: 60
-  beetroots: 60
-  oak_sapling: 300
-  birch_sapling: 300
-  spruce_sapling: 300
-  jungle_sapling: 300
-  acacia_sapling: 300
-  dark_oak_sapling: 300
+  wheat: 1200
+  carrots: 600
+  potatoes: 600
+  beetroots: 600
+  oak_sapling: 1200
+  birch_sapling: 1200
+  spruce_sapling: 1200
+  jungle_sapling: 1200
+  acacia_sapling: 1200
+  dark_oak_sapling: 1200
+
   debug: false

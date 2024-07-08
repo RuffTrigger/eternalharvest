@@ -10,7 +10,7 @@ public class Main extends JavaPlugin {
     private static Main instance;
     private DatabaseManager databaseManager;
     private Logger logger;
-    private int updateIntervalSeconds; // Store the update interval
+    private int updateIntervalSeconds;
 
     @Override
     public void onEnable() {
@@ -26,7 +26,7 @@ public class Main extends JavaPlugin {
 
         // Initialize database
         this.databaseManager = new DatabaseManager();
-        this.databaseManager.setupDatabase(); // Ensure database schema is set up
+        this.databaseManager.setupDatabase();
         logger.info("Database initialized.");
 
         // Register events
@@ -40,7 +40,6 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Disable plugin logic here
         // Close database connection
         if (databaseManager != null) {
             databaseManager.closeConnection();
@@ -51,7 +50,6 @@ public class Main extends JavaPlugin {
     }
 
     private void loadConfigValues() {
-        // Load update interval from config.yml
         this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
     }
 
