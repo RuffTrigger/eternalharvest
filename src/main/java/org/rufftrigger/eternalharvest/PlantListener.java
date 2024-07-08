@@ -6,7 +6,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
-
 public class PlantListener implements Listener {
 
     private final DatabaseManager databaseManager;

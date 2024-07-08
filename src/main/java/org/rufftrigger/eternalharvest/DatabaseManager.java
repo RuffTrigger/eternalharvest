@@ -77,23 +77,27 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
-    public List<PlantData> getAllPlants() throws SQLException {
+    public List<PlantData> getAllPlants() {
         List<PlantData> plants = new ArrayList<>();
-        PreparedStatement statement = connection.prepareStatement("SELECT * FROM plant_data;");
-        ResultSet resultSet = statement.executeQuery();
-        while (resultSet.next()) {
-            PlantData plant = new PlantData(
-                    resultSet.getInt("id"),
-                    resultSet.getString("location"),
-                    Material.valueOf(resultSet.getString("material")),
-                    resultSet.getInt("growth_time"),
-                    resultSet.getLong("plant_timestamp"),
-                    resultSet.getTimestamp("last_updated").getTime()
-            );
-            plants.add(plant);
+        try {
+            PreparedStatement statement = connection.prepareStatement("SELECT * FROM plant_data;");
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                PlantData plant = new PlantData(
+                        resultSet.getInt("id"),
+                        resultSet.getString("location"),
+                        Material.valueOf(resultSet.getString("material")),
+                        resultSet.getInt("growth_time"),
+                        resultSet.getLong("plant_timestamp"),
+                        resultSet.getTimestamp("last_updated").getTime()
+                );
+                plants.add(plant);
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        resultSet.close();
-        statement.close();
         return plants;
     }
 
@@ -114,5 +118,15 @@ public class DatabaseManager {
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
+    }
+
+    public void closeConnection() {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

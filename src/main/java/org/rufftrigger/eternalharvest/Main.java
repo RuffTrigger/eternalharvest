@@ -3,6 +3,10 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class Main extends JavaPlugin {
 
@@ -31,6 +35,10 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         // Disable plugin logic here
+        // Close database connection
+        if (databaseManager != null) {
+            databaseManager.closeConnection();
+        }
     }
 
     public static Main getInstance() {
