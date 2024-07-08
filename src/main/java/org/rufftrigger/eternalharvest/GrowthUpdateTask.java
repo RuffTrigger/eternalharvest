@@ -77,13 +77,23 @@ public class GrowthUpdateTask extends BukkitRunnable {
 
                 // Handle tree growth (saplings)
                 if (isSapling(material) && growthProgress == 100) {
-                    // Set sapling to its final state to grow into a tree
                     BlockData saplingData = Bukkit.createBlockData(material);
-                    // You may need to adjust the sapling data to ensure it grows into a tree
-                    // For example, oak saplings have different growth stages
+
+                    // Adjust saplingData based on sapling type
                     if (material == Material.OAK_SAPLING) {
-                        saplingData = Bukkit.createBlockData("oak_sapling[stage=1]"); // Adjust stage as needed
+                        saplingData = Bukkit.createBlockData("minecraft:oak_sapling[stage=1]");
+                    } else if (material == Material.SPRUCE_SAPLING) {
+                        saplingData = Bukkit.createBlockData(material); // No specific stages for spruce saplings
+                    } else if (material == Material.BIRCH_SAPLING) {
+                        saplingData = Bukkit.createBlockData(material); // No specific stages for birch saplings
+                    } else if (material == Material.JUNGLE_SAPLING) {
+                        saplingData = Bukkit.createBlockData(material); // No specific stages for jungle saplings
+                    } else if (material == Material.ACACIA_SAPLING) {
+                        saplingData = Bukkit.createBlockData(material); // No specific stages for acacia saplings
+                    } else if (material == Material.DARK_OAK_SAPLING) {
+                        saplingData = Bukkit.createBlockData(material); // No specific stages for dark oak saplings
                     }
+
                     block.setBlockData(saplingData);
                     Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + ".");
                 }
@@ -99,6 +109,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
         String materialName = material.name();
         return materialName.endsWith("_SAPLING");
     }
+
 
 
 }
