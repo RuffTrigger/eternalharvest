@@ -2,6 +2,7 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.Particle;
 
@@ -14,6 +15,8 @@ public class Plant {
     private long lastUpdated;
     private long lastUnloaded;
 
+    private final FileConfiguration config; // Configuration object to access config.yml
+
     public Plant(int id, String type, Location location, int growthStage, long lastUpdated, long lastUnloaded) {
         this.id = id;
         this.type = type;
@@ -21,6 +24,9 @@ public class Plant {
         this.growthStage = growthStage;
         this.lastUpdated = lastUpdated;
         this.lastUnloaded = lastUnloaded;
+
+        // Access the plugin's configuration file
+        this.config = Main.getPlugin(Main.class).getConfig();
     }
 
     public int getId() {
@@ -77,26 +83,27 @@ public class Plant {
                 }
 
                 int secondsRemaining = (int) (remainingTime / 1000) + 1;
-                location.getWorld().strikeLightningEffect(location); // Example effect, replace with desired visual indicator
-                location.getWorld().playSound(location, Sound.BLOCK_NOTE_BLOCK_HARP, 1, 1); // Example sound, replace with desired sound
 
-                // Example: Update signs or display information above plant
-                // Replace with your implementation to display countdown timer
+                // Example effects and sounds
+                location.getWorld().strikeLightningEffect(location);
+                location.getWorld().playSound(location, Sound.BLOCK_NOTE_BLOCK_HARP, 1, 1);
+
+                // Example particle effect
                 location.getWorld().spawnParticle(Particle.FIREWORK, location.add(0, 1, 0), 10);
             }
         }.runTaskTimer(Main.getPlugin(Main.class), 0L, 20L); // Run every second
     }
 
     private long calculateGrowthTime() {
-        // Example: Implement logic to calculate growth time based on growth stage and plant type
-        // Replace with your implementation
-        switch (growthStage) {
-            case 1:
-                return 60 * 1000; // 1 minute for stage 1
-            case 2:
-                return 120 * 1000; // 2 minutes for stage 2
-            default:
-                return 0; // Default, should not happen ideally
+        // Retrieve growth time from configuration based on plant type
+        int defaultGrowthTime = 60; // Default growth time in seconds if not found in config.yml
+
+        // Check if the growth time is defined in config.yml
+        if (config.contains("growth-times." + type.toLowerCase())) {
+            return config.getInt("growth-times." + type.toLowerCase()) * 1000; // Convert seconds to milliseconds
+        } else {
+            // Use default growth time if not defined in config.yml
+            return defaultGrowthTime * 1000;
         }
     }
 }
