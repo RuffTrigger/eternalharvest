@@ -1,12 +1,8 @@
 package org.rufftrigger.eternalharvest;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -77,24 +73,11 @@ public class GrowthUpdateTask extends BukkitRunnable {
 
                 // Handle tree growth (saplings)
                 if (isSapling(material) && growthProgress == 100) {
-                    BlockData saplingData = Bukkit.createBlockData(material);
+                    // Determine the correct TreeType based on the sapling Material
+                    TreeType treeType = getTreeType(material);
 
-                    // Adjust saplingData based on sapling type
-                    if (material == Material.OAK_SAPLING) {
-                        saplingData = Bukkit.createBlockData("minecraft:oak_sapling[stage=1]");
-                    } else if (material == Material.SPRUCE_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for spruce saplings
-                    } else if (material == Material.BIRCH_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for birch saplings
-                    } else if (material == Material.JUNGLE_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for jungle saplings
-                    } else if (material == Material.ACACIA_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for acacia saplings
-                    } else if (material == Material.DARK_OAK_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for dark oak saplings
-                    }
-
-                    block.setBlockData(saplingData);
+                    // Generate the tree at the sapling location
+                    block.getWorld().generateTree(location, treeType);
                     Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + ".");
                 }
 
@@ -110,6 +93,24 @@ public class GrowthUpdateTask extends BukkitRunnable {
         return materialName.endsWith("_SAPLING");
     }
 
-
+    private TreeType getTreeType(Material saplingMaterial) {
+        // Determine the TreeType based on the sapling Material
+        switch (saplingMaterial) {
+            case OAK_SAPLING:
+                return TreeType.TREE;
+            case SPRUCE_SAPLING:
+                return TreeType.REDWOOD; // Spruce trees
+            case BIRCH_SAPLING:
+                return TreeType.BIRCH;
+            case JUNGLE_SAPLING:
+                return TreeType.SMALL_JUNGLE; // Small jungle trees
+            case ACACIA_SAPLING:
+                return TreeType.ACACIA;
+            case DARK_OAK_SAPLING:
+                return TreeType.DARK_OAK;
+            default:
+                return TreeType.TREE; // Default to oak tree
+        }
+    }
 
 }
