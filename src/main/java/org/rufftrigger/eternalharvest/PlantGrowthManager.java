@@ -157,4 +157,33 @@ public class PlantGrowthManager {
             }
         }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
+
+    public void removePlantData(Plant plant, Connection connection) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try (PreparedStatement stmt = connection.prepareStatement("DELETE FROM plants WHERE id = ?")) {
+                    stmt.setInt(1, plant.getId());
+                    stmt.executeUpdate();
+                    logger.info("Removed plant data from database: " + plant);
+
+                    // Remove plant from local map
+                    plantMap.remove(plant.getId());
+                    logger.info("Removed plant from local map: " + plant);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
+    }
+
+
+    public Plant getPlantAtLocation(Location location) {
+        for (Plant plant : plantMap.values()) {
+            if (plant.getLocation().equals(location)) {
+                return plant;
+            }
+        }
+        return null;
+    }
 }
