@@ -177,6 +177,21 @@ public class PlantGrowthManager {
         }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
+    public void updateGrowthStage(int plantId, int newStage) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Plant plant = getPlant(plantId);
+                if (plant != null) {
+                    plant.setGrowthStage(newStage);
+                    plant.setLastUpdated(System.currentTimeMillis()); // Update last updated time
+
+                    // Save updated plant data asynchronously
+                    savePlantData(plant, Main.getPlugin(Main.class).getConnection());
+                }
+            }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
+    }
 
     public Plant getPlantAtLocation(Location location) {
         for (Plant plant : plantMap.values()) {

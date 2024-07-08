@@ -8,9 +8,11 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.ResultSet;
+import java.util.logging.Logger;
 
 public class Main extends JavaPlugin {
 
@@ -72,6 +74,9 @@ public class Main extends JavaPlugin {
                     getServer().getPluginManager().registerEvents(new ChunkEventListener(Main.this), Main.this);
                     getLogger().info("EternalHarvest plugin has been enabled!");
                 });
+
+                // Start a task to check for updates from database periodically
+                startUpdateTask();
             }
         }.runTaskAsynchronously(this);
     }
@@ -146,5 +151,36 @@ public class Main extends JavaPlugin {
             e.printStackTrace();
             getLogger().severe("Failed to update database schema: " + e.getMessage());
         }
+    }
+
+    public void startUpdateTask() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    // Query database for changes and update accordingly
+                    String query = "SELECT id, growth_stage FROM plants WHERE last_updated > ?";
+                    long lastCheckTime = System.currentTimeMillis() - (24 * 60 * 60 * 1000); // Check changes in the last 24 hours
+
+                    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+                        stmt.setLong(1, lastCheckTime);
+
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            while (rs.next()) {
+                                int plantId = rs.getInt("id");
+                                int newStage = rs.getInt("growth_stage");
+
+                                // Update growth stage in PlantGrowthManager
+                                PlantGrowthManager.getInstance().updateGrowthStage(plantId, newStage);
+                                getLogger().info("Updated growth stage for plant ID " + plantId + " to " + newStage);
+                            }
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    getLogger().severe("Failed to query for plant updates: " + e.getMessage());
+                }
+            }
+        }.runTaskTimerAsynchronously(this, 0L, 20L * 60 * 10); // Run every 10 minutes
     }
 }
