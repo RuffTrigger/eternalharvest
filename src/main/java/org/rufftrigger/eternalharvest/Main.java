@@ -15,10 +15,14 @@ public class Main extends JavaPlugin {
 
         // Initialize database
         this.databaseManager = new DatabaseManager();
-        this.databaseManager.setupDatabase();
+        this.databaseManager.setupDatabase(); // Ensure database schema is set up
 
         // Register events
         Bukkit.getPluginManager().registerEvents(new PlantListener(databaseManager), this);
+
+        // Start growth update task
+        int updateIntervalSeconds = 300; // Update every 5 minutes
+        new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
 
         // Save default config if not exists
         this.saveDefaultConfig();
