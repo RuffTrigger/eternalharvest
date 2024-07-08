@@ -1,15 +1,16 @@
 package org.rufftrigger.eternalharvest;
 
+import org.bukkit.Location;
 import org.bukkit.Material;
 
 public class PlantData {
 
     private final int id;
-    private final String location;
+    private final String location; // Keep this as String for storage
     private final Material material;
     private final int growthTime;
     private final long plantTimestamp;
-    private final int growthProgress; // Add this field
+    private final int growthProgress;
     private final long lastUpdated;
 
     public PlantData(int id, String location, Material material, int growthTime, long plantTimestamp, int growthProgress, long lastUpdated) {
@@ -18,7 +19,7 @@ public class PlantData {
         this.material = material;
         this.growthTime = growthTime;
         this.plantTimestamp = plantTimestamp;
-        this.growthProgress = growthProgress; // Initialize this field
+        this.growthProgress = growthProgress;
         this.lastUpdated = lastUpdated;
     }
 
@@ -29,6 +30,10 @@ public class PlantData {
 
     public String getLocation() {
         return location;
+    }
+
+    public Location getLocationObject() {
+        return LocationUtil.fromString(location);
     }
 
     public Material getMaterial() {
@@ -44,7 +49,7 @@ public class PlantData {
     }
 
     public int getGrowthProgress() {
-        return growthProgress; // Getter for growthProgress
+        return growthProgress;
     }
 
     public long getLastUpdated() {

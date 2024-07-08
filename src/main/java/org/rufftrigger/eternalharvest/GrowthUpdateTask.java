@@ -1,6 +1,10 @@
 package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -38,8 +42,31 @@ public class GrowthUpdateTask extends BukkitRunnable {
             // Update growth progress in the database
             databaseManager.updateGrowthProgress(plant.getId(), growthProgress);
 
-            // Optionally, apply growth effects in the game world
-            // You may need to run this part on the main thread using Bukkit.getScheduler().runTask()
+            // Apply growth progress in the game world
+            applyGrowthToWorld(plant, growthProgress);
         }
+    }
+
+    private void applyGrowthToWorld(PlantData plant, int growthProgress) {
+        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
+            // Parse the location from the stored string
+            Location location = LocationUtil.fromString(plant.getLocation());
+
+            if (location != null) {
+                Block block = location.getBlock();
+
+                if (block.getType() == plant.getMaterial()) {
+                    if (block.getBlockData() instanceof Ageable) {
+                        Ageable ageable = (Ageable) block.getBlockData();
+                        int maxAge = ageable.getMaximumAge();
+                        int newAge = (int) ((growthProgress / 100.0) * maxAge);
+                        ageable.setAge(newAge);
+                        block.setBlockData(ageable);
+
+                        Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                    }
+                }
+            }
+        });
     }
 }
