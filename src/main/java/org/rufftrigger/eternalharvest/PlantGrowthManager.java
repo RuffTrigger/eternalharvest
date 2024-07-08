@@ -2,6 +2,8 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.sql.Connection;
@@ -36,6 +38,7 @@ public class PlantGrowthManager {
     public void addPlant(Plant plant) {
         plantMap.put(plant.getId(), plant);
         logger.info("Plant added to PlantGrowthManager: " + plant);
+        plant.startGrowthTimer(); // Start timer when plant is added
     }
 
     public Plant getPlant(int id) {
@@ -94,9 +97,11 @@ public class PlantGrowthManager {
                         long lastUpdated = rs.getLong("last_updated");
                         long lastUnloaded = rs.getLong("last_unloaded");
 
-                        Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                        Location location = new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z);
+                        Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                         plantMap.put(id, plant);
                         logger.info("Loaded plant: " + plant);
+                        plant.startGrowthTimer(); // Start timer when plant is loaded
                     }
                 } catch (SQLException e) {
                     e.printStackTrace();
@@ -149,6 +154,7 @@ public class PlantGrowthManager {
                             Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                             plantMap.put(id, plant);
                             logger.info("Loaded plant from chunk: " + plant);
+                            plant.startGrowthTimer(); // Start timer when plant is loaded from chunk
                         }
                     }
                 } catch (SQLException e) {
