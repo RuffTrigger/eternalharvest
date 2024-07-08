@@ -3,6 +3,8 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Material;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -24,25 +26,49 @@ public class DatabaseManager {
 
     public void setupDatabase() {
         try {
-            connection = DriverManager.getConnection("jdbc:sqlite:" + Main.getInstance().getDataFolder() + "/plant_growth.db");
+            File dataFolder = Main.getInstance().getDataFolder();
+            if (!dataFolder.exists()) {
+                dataFolder.mkdirs();
+            }
+
+            File dbFile = new File(dataFolder, "plant_growth.db");
+            if (!dbFile.exists()) {
+                createNewDatabase(dbFile);
+            }
+
+            // Connect to the database
+            String url = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+            connection = DriverManager.getConnection(url);
 
             // Create table if not exists
-            PreparedStatement createTableStatement = connection.prepareStatement(
-                    "CREATE TABLE IF NOT EXISTS plant_data (" +
-                            "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                            "location TEXT," +
-                            "material TEXT," +
-                            "growth_time INTEGER," +
-                            "plant_timestamp INTEGER," +
-                            "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
-                            "growth_progress INTEGER DEFAULT 0" +  // Add growth_progress column with default value
-                            ");"
-            );
-            createTableStatement.executeUpdate();
-            createTableStatement.close();
+            String createTableSQL = "CREATE TABLE IF NOT EXISTS plant_data (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "location TEXT," +
+                    "material TEXT," +
+                    "growth_time INTEGER," +
+                    "plant_timestamp INTEGER," +
+                    "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                    ");";
+            try (PreparedStatement createTableStatement = connection.prepareStatement(createTableSQL)) {
+                createTableStatement.executeUpdate();
+            }
+
             logger.info("Database setup completed.");
-        } catch (SQLException e) {
+        } catch (SQLException | IOException e) {
             logger.log(Level.SEVERE, "Error setting up database.", e);
+        }
+    }
+
+    private void createNewDatabase(File dbFile) throws IOException {
+        try {
+            if (dbFile.createNewFile()) {
+                logger.info("Database file created: " + dbFile.getAbsolutePath());
+            } else {
+                throw new IOException("Failed to create database file.");
+            }
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error creating database file.", e);
+            throw e;
         }
     }
 
