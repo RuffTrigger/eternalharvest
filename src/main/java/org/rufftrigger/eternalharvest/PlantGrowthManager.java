@@ -94,7 +94,8 @@ public class PlantGrowthManager {
                         long lastUpdated = rs.getLong("last_updated");
                         long lastUnloaded = rs.getLong("last_unloaded");
 
-                        Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                        Location location = new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z);
+                        Plant plant = new Plant(id, type, location, growthStage, lastUpdated, lastUnloaded);
                         plantMap.put(id, plant);
                         logger.info("Loaded plant: " + plant);
                     }
@@ -158,23 +159,28 @@ public class PlantGrowthManager {
         }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
-    public void removePlantData(Plant plant, Connection connection) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try (PreparedStatement stmt = connection.prepareStatement("DELETE FROM plants WHERE id = ?")) {
-                    stmt.setInt(1, plant.getId());
-                    stmt.executeUpdate();
-                    logger.info("Removed plant data from database: " + plant);
+    public void removePlant(int plantId) {
+        Plant removedPlant = plantMap.remove(plantId);
+        if (removedPlant != null) {
+            logger.info("Removed plant from local map: " + removedPlant);
 
-                    // Remove plant from local map
-                    plantMap.remove(plant.getId());
-                    logger.info("Removed plant from local map: " + plant);
-                } catch (SQLException e) {
-                    e.printStackTrace();
+            // Remove plant data from database
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    try (Connection connection = Main.getPlugin(Main.class).getConnection();
+                         PreparedStatement stmt = connection.prepareStatement("DELETE FROM plants WHERE id = ?")) {
+                        stmt.setInt(1, plantId);
+                        stmt.executeUpdate();
+                        logger.info("Removed plant data from database: " + removedPlant);
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        }.runTaskAsynchronously(Main.getPlugin(Main.class));
+            }.runTaskAsynchronously(Main.getPlugin(Main.class));
+        } else {
+            logger.warning("Failed to remove plant: Plant ID " + plantId + " not found.");
+        }
     }
 
     public void updateGrowthStage(int plantId, int newStage) {
