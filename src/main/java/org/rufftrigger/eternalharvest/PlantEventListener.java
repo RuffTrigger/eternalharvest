@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 public class PlantEventListener implements Listener {
     private final Main plugin;
@@ -21,7 +22,14 @@ public class PlantEventListener implements Listener {
         if (isTrackedPlantType(material)) {
             long currentTime = System.currentTimeMillis();
             Plant plant = new Plant(material.toString(), location, 0, currentTime, currentTime, plugin);
-            savePlant(plant);
+
+            // Save plant asynchronously
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    savePlant(plant);
+                }
+            }.runTaskAsynchronously(plugin);
         } else {
             plugin.getLogger().info("Block placed is not a tracked plant type: " + material.toString());
         }

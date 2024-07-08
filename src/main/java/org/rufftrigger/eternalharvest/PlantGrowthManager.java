@@ -2,6 +2,8 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.scheduler.BukkitRunnable;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,104 +43,129 @@ public class PlantGrowthManager {
     }
 
     public void savePlantData(Plant plant, Connection connection) {
-        try (PreparedStatement stmt = connection.prepareStatement(
-                "INSERT OR REPLACE INTO plants (id, type, world, x, y, z, growth_stage, last_updated, last_unloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
-            stmt.setInt(1, plant.getId());
-            stmt.setString(2, plant.getType());
-            stmt.setString(3, plant.getLocation().getWorld().getName());
-            stmt.setDouble(4, plant.getLocation().getX());
-            stmt.setDouble(5, plant.getLocation().getY());
-            stmt.setDouble(6, plant.getLocation().getZ());
-            stmt.setInt(7, plant.getGrowthStage());
-            stmt.setLong(8, plant.getLastUpdated());
-            stmt.setLong(9, plant.getLastUnloaded());
-            stmt.executeUpdate();
-            logger.info("Saved plant data: " + plant);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try (PreparedStatement stmt = connection.prepareStatement(
+                        "INSERT OR REPLACE INTO plants (id, type, world, x, y, z, growth_stage, last_updated, last_unloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    stmt.setInt(1, plant.getId());
+                    stmt.setString(2, plant.getType());
+                    stmt.setString(3, plant.getLocation().getWorld().getName());
+                    stmt.setDouble(4, plant.getLocation().getX());
+                    stmt.setDouble(5, plant.getLocation().getY());
+                    stmt.setDouble(6, plant.getLocation().getZ());
+                    stmt.setInt(7, plant.getGrowthStage());
+                    stmt.setLong(8, plant.getLastUpdated());
+                    stmt.setLong(9, plant.getLastUnloaded());
+                    stmt.executeUpdate();
+                    logger.info("Saved plant data: " + plant);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
     public void saveAllPlantData() {
-        for (Plant plant : plantMap.values()) {
-            savePlantData(plant, Main.getPlugin(Main.class).getConnection());
-        }
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (Plant plant : plantMap.values()) {
+                    savePlantData(plant, Main.getPlugin(Main.class).getConnection());
+                }
+            }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
     public void loadAllPlantData(Connection connection) {
-        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM plants");
-             ResultSet rs = stmt.executeQuery()) {
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String type = rs.getString("type");
-                String world = rs.getString("world");
-                double x = rs.getDouble("x");
-                double y = rs.getDouble("y");
-                double z = rs.getDouble("z");
-                int growthStage = rs.getInt("growth_stage");
-                long lastUpdated = rs.getLong("last_updated");
-                long lastUnloaded = rs.getLong("last_unloaded");
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM plants");
+                     ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        int id = rs.getInt("id");
+                        String type = rs.getString("type");
+                        String world = rs.getString("world");
+                        double x = rs.getDouble("x");
+                        double y = rs.getDouble("y");
+                        double z = rs.getDouble("z");
+                        int growthStage = rs.getInt("growth_stage");
+                        long lastUpdated = rs.getLong("last_updated");
+                        long lastUnloaded = rs.getLong("last_unloaded");
 
-                Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
-                plantMap.put(id, plant);
-                logger.info("Loaded plant: " + plant);
+                        Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                        plantMap.put(id, plant);
+                        logger.info("Loaded plant: " + plant);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
     public int getCurrentMaxId(Connection connection) {
-        int maxId = 0;
-        try (PreparedStatement stmt = connection.prepareStatement("SELECT MAX(id) AS max_id FROM plants");
-             ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                maxId = rs.getInt("max_id");
+        final int[] maxId = {0};
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try (PreparedStatement stmt = connection.prepareStatement("SELECT MAX(id) AS max_id FROM plants");
+                     ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        maxId[0] = rs.getInt("max_id");
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return maxId;
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
+        return maxId[0];
     }
 
     public void loadPlantsInChunk(Chunk chunk, Connection connection) {
-        try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM plants WHERE world = ? AND x BETWEEN ? AND ? AND z BETWEEN ? AND ?");
-             ResultSet rs = stmt.executeQuery()) {
-            stmt.setString(1, chunk.getWorld().getName());
-            stmt.setInt(2, chunk.getX() * 16);
-            stmt.setInt(3, chunk.getX() * 16 + 15);
-            stmt.setInt(4, chunk.getZ() * 16);
-            stmt.setInt(5, chunk.getZ() * 16 + 15);
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try (PreparedStatement stmt = connection.prepareStatement("SELECT * FROM plants WHERE world = ? AND x BETWEEN ? AND ? AND z BETWEEN ? AND ?")) {
+                    stmt.setString(1, chunk.getWorld().getName());
+                    stmt.setInt(2, chunk.getX() * 16);
+                    stmt.setInt(3, chunk.getX() * 16 + 15);
+                    stmt.setInt(4, chunk.getZ() * 16);
+                    stmt.setInt(5, chunk.getZ() * 16 + 15);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        while (rs.next()) {
+                            int id = rs.getInt("id");
+                            String type = rs.getString("type");
+                            String world = rs.getString("world");
+                            double x = rs.getDouble("x");
+                            double y = rs.getDouble("y");
+                            double z = rs.getDouble("z");
+                            int growthStage = rs.getInt("growth_stage");
+                            long lastUpdated = rs.getLong("last_updated");
+                            long lastUnloaded = rs.getLong("last_unloaded");
 
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String type = rs.getString("type");
-                String world = rs.getString("world");
-                double x = rs.getDouble("x");
-                double y = rs.getDouble("y");
-                double z = rs.getDouble("z");
-                int growthStage = rs.getInt("growth_stage");
-                long lastUpdated = rs.getLong("last_updated");
-                long lastUnloaded = rs.getLong("last_unloaded");
-
-                Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
-                plantMap.put(id, plant);
-                logger.info("Loaded plant from database into chunk: " + plant);
+                            Plant plant = new Plant(id, type, new Location(Main.getPlugin(Main.class).getServer().getWorld(world), x, y, z), growthStage, lastUpdated, lastUnloaded);
+                            plantMap.put(id, plant);
+                            updateGrowthState(plant);
+                            logger.info("Loaded plant from database into chunk: " + plant);
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        }.runTaskAsynchronously(Main.getPlugin(Main.class));
     }
 
-    public void savePlantsInChunk(Chunk chunk) {
-        for (Plant plant : plantMap.values()) {
-            Location plantLocation = plant.getLocation();
-            Chunk plantChunk = plantLocation.getChunk();
+    private void updateGrowthState(Plant plant) {
+        // Implement the logic to update the plant's growth state based on the time elapsed
+        long currentTime = System.currentTimeMillis();
+        long timeElapsed = currentTime - plant.getLastUpdated();
 
-            // Check if the plant's chunk matches the given chunk
-            if (plantChunk.equals(chunk)) {
-                savePlantData(plant, Main.getPlugin(Main.class).getConnection());
-            }
-        }
+        // Example: Update growth stage based on time elapsed (this logic can be customized)
+        int growthStagesPassed = (int) (timeElapsed / 60000); // Assume each growth stage takes 1 minute
+        plant.setGrowthStage(plant.getGrowthStage() + growthStagesPassed);
+        plant.setLastUpdated(currentTime);
     }
 }
