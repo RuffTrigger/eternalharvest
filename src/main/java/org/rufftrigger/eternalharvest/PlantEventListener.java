@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 public class PlantEventListener implements Listener {
@@ -15,26 +15,25 @@ public class PlantEventListener implements Listener {
     }
 
     @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
+    public void onBlockPlace(BlockPlaceEvent event) {
         Location location = event.getBlock().getLocation();
         Material material = event.getBlock().getType();
 
         if (isTrackedPlantType(material)) {
-            // Remove plant from database and local map asynchronously
+            long currentTime = System.currentTimeMillis();
+            Plant plant = new Plant(0, material.toString(), location, 0, currentTime, currentTime);
+
+            // Save plant asynchronously
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    PlantGrowthManager plantManager = PlantGrowthManager.getInstance();
-                    Plant plant = plantManager.getPlantAtLocation(location);
-                    if (plant != null) {
-                        plantManager.removePlantData(plant, plugin.getConnection());
-                        plugin.getLogger().info("Removed plant: " + plant);
-                    }
+                    savePlant(plant);
                 }
             }.runTaskAsynchronously(plugin);
+        } else {
+            plugin.getLogger().info("Block placed is not a tracked plant type: " + material.toString());
         }
     }
-
 
     private boolean isTrackedPlantType(Material material) {
         // Check if the material is one of the tracked types
@@ -48,5 +47,12 @@ public class PlantEventListener implements Listener {
                 // Check if the material ends with "_SAPLING"
                 return material.name().endsWith("_SAPLING");
         }
+    }
+
+    private void savePlant(Plant plant) {
+        PlantGrowthManager plantManager = PlantGrowthManager.getInstance();
+        plantManager.addPlant(plant);
+        plantManager.savePlantData(plant, plugin.getConnection());
+        plugin.getLogger().info("Planting detected: " + plant);
     }
 }
