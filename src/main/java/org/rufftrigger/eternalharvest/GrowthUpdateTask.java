@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -62,15 +63,29 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 }
 
                 Block block = location.getBlock();
+                Material material = block.getType();
 
-                if (block.getType() == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
+                // Handle crop growth
+                if (material == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
                     Ageable ageable = (Ageable) block.getBlockData();
                     int maxAge = ageable.getMaximumAge();
                     int newAge = (int) ((growthProgress / 100.0) * maxAge);
                     ageable.setAge(newAge);
                     block.setBlockData(ageable);
+                    Main.getInstance().getLogger().info("Updated crop at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                }
 
-                    Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                // Handle tree growth (saplings)
+                if (isSapling(material) && growthProgress == 100) {
+                    // Set sapling to its final state to grow into a tree
+                    BlockData saplingData = Bukkit.createBlockData(material);
+                    // You may need to adjust the sapling data to ensure it grows into a tree
+                    // For example, oak saplings have different growth stages
+                    if (material == Material.OAK_SAPLING) {
+                        saplingData = Bukkit.createBlockData("oak_sapling[stage=1]"); // Adjust stage as needed
+                    }
+                    block.setBlockData(saplingData);
+                    Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + ".");
                 }
 
                 if (!wasLoaded) {
@@ -79,4 +94,11 @@ public class GrowthUpdateTask extends BukkitRunnable {
             }
         });
     }
+
+    private boolean isSapling(Material material) {
+        String materialName = material.name();
+        return materialName.endsWith("_SAPLING");
+    }
+
+
 }
