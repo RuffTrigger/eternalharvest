@@ -3,6 +3,7 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
+import org.bukkit.block.data.type.Sapling;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -71,14 +72,13 @@ public class GrowthUpdateTask extends BukkitRunnable {
                     Main.getInstance().getLogger().info("Updated crop at " + location.toString() + " to growth progress " + growthProgress + "%.");
                 }
 
-                // Handle tree growth (saplings)
+                // Handle sapling growth using bonemeal
                 if (isSapling(material) && growthProgress == 100) {
-                    // Determine the correct TreeType based on the sapling Material
-                    TreeType treeType = getTreeType(material);
-
-                    // Generate the tree at the sapling location
-                    block.getWorld().generateTree(location, treeType);
-                    Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + ".");
+                    // Apply bonemeal until sapling grows into a tree
+                    while (block.getType() == material && block.getBlockData() instanceof Sapling) {
+                        block.getWorld().generateTree(block.getLocation(), TreeType.valueOf(material.name()));
+                        Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + " using bonemeal.");
+                    }
                 }
 
                 if (!wasLoaded) {
@@ -89,28 +89,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
     }
 
     private boolean isSapling(Material material) {
-        String materialName = material.name();
-        return materialName.endsWith("_SAPLING");
-    }
-
-    private TreeType getTreeType(Material saplingMaterial) {
-        // Determine the TreeType based on the sapling Material
-        switch (saplingMaterial) {
-            case OAK_SAPLING:
-                return TreeType.TREE;
-            case SPRUCE_SAPLING:
-                return TreeType.REDWOOD; // Spruce trees
-            case BIRCH_SAPLING:
-                return TreeType.BIRCH;
-            case JUNGLE_SAPLING:
-                return TreeType.SMALL_JUNGLE; // Small jungle trees
-            case ACACIA_SAPLING:
-                return TreeType.ACACIA;
-            case DARK_OAK_SAPLING:
-                return TreeType.DARK_OAK;
-            default:
-                return TreeType.TREE; // Default to oak tree
-        }
+        return material.name().endsWith("_SAPLING");
     }
 
 }
