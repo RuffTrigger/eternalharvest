@@ -4,8 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.event.block.BlockPlaceEvent;
 
 public class PlantEventListener implements Listener {
     private final Main plugin;
@@ -15,23 +14,16 @@ public class PlantEventListener implements Listener {
     }
 
     @EventHandler
-    public void onBlockBreak(BlockBreakEvent event) {
+    public void onBlockPlace(BlockPlaceEvent event) {
         Location location = event.getBlock().getLocation();
         Material material = event.getBlock().getType();
 
         if (isTrackedPlantType(material)) {
-            // Remove plant from database asynchronously
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    PlantGrowthManager plantManager = PlantGrowthManager.getInstance();
-                    Plant plant = plantManager.getPlantAtLocation(location);
-                    if (plant != null) {
-                        plantManager.removePlant(plant.getId());
-                        plugin.getLogger().info("Removed plant data: " + plant);
-                    }
-                }
-            }.runTaskAsynchronously(plugin);
+            long currentTime = System.currentTimeMillis();
+            Plant plant = new Plant(material.toString(), location, 0, currentTime, currentTime, plugin);
+            savePlant(plant);
+        } else {
+            plugin.getLogger().info("Block placed is not a tracked plant type: " + material.toString());
         }
     }
 
@@ -47,5 +39,12 @@ public class PlantEventListener implements Listener {
                 // Check if the material ends with "_SAPLING"
                 return material.name().endsWith("_SAPLING");
         }
+    }
+
+    private void savePlant(Plant plant) {
+        PlantGrowthManager plantManager = PlantGrowthManager.getInstance();
+        plantManager.addPlant(plant);
+        plantManager.savePlantData(plant, plugin.getConnection());
+        plugin.getLogger().info("Planting detected: " + plant);
     }
 }
