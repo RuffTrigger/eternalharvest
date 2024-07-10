@@ -69,6 +69,9 @@ public class GrowthUpdateTask extends BukkitRunnable {
                             boolean treeGenerated = location.getWorld().generateTree(location, treeType);
                             if (treeGenerated) {
                                 Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
+
+                                // Remove the plant data from the database
+                                databaseManager.recordRemoval(location, plant.getMaterial());
                             } else {
                                 Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
                             }
@@ -91,6 +94,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
             }
         });
     }
+
 
     private TreeType getTreeTypeFromMaterial(Material material) {
         switch (material) {
