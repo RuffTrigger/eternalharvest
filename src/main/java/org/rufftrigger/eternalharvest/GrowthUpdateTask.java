@@ -6,7 +6,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
-import org.bukkit.block.data.BlockData;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
@@ -63,39 +62,15 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 }
 
                 Block block = location.getBlock();
-                Material material = block.getType();
 
-                // Handle crop growth
-                if (material == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
+                if (block.getType() == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
                     Ageable ageable = (Ageable) block.getBlockData();
                     int maxAge = ageable.getMaximumAge();
                     int newAge = (int) ((growthProgress / 100.0) * maxAge);
                     ageable.setAge(newAge);
                     block.setBlockData(ageable);
-                    Main.getInstance().getLogger().info("Updated crop at " + location.toString() + " to growth progress " + growthProgress + "%.");
-                }
 
-                // Handle tree growth (saplings)
-                if (isSapling(material) && growthProgress == 100) {
-                    BlockData saplingData = Bukkit.createBlockData(material);
-
-                    // Adjust saplingData based on sapling type
-                    if (material == Material.OAK_SAPLING) {
-                        saplingData = Bukkit.createBlockData("minecraft:oak_sapling[stage=1]");
-                    } else if (material == Material.SPRUCE_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for spruce saplings
-                    } else if (material == Material.BIRCH_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for birch saplings
-                    } else if (material == Material.JUNGLE_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for jungle saplings
-                    } else if (material == Material.ACACIA_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for acacia saplings
-                    } else if (material == Material.DARK_OAK_SAPLING) {
-                        saplingData = Bukkit.createBlockData(material); // No specific stages for dark oak saplings
-                    }
-
-                    block.setBlockData(saplingData);
-                    Main.getInstance().getLogger().info("Forced tree growth at " + location.toString() + ".");
+                    Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
                 }
 
                 if (!wasLoaded) {
@@ -104,12 +79,4 @@ public class GrowthUpdateTask extends BukkitRunnable {
             }
         });
     }
-
-    private boolean isSapling(Material material) {
-        String materialName = material.name();
-        return materialName.endsWith("_SAPLING");
-    }
-
-
-
 }
