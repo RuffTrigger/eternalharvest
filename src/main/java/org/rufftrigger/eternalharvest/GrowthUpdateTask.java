@@ -68,7 +68,10 @@ public class GrowthUpdateTask extends BukkitRunnable {
                             TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
                             boolean treeGenerated = location.getWorld().generateTree(location, treeType);
                             if (treeGenerated) {
-                                Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
+                                if (Main.getInstance().getConfig().getBoolean(" debug")){
+                                    Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
+                                }
+
 
                                 // Remove the plant data from the database
                                 databaseManager.recordRemoval(location, plant.getMaterial());
@@ -83,8 +86,11 @@ public class GrowthUpdateTask extends BukkitRunnable {
                         int newAge = (int) ((growthProgress / 100.0) * maxAge);
                         ageable.setAge(newAge);
                         block.setBlockData(ageable);
+                        if (Main.getInstance().getConfig().getBoolean(" debug")){
+                            Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
 
-                        Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                        }
+
                     }
                 }
 

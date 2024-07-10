@@ -11,6 +11,7 @@ public class Main extends JavaPlugin {
     private DatabaseManager databaseManager;
     private Logger logger;
     private int updateIntervalSeconds;
+    public boolean debug; // Variable to store debug mode status
 
     @Override
     public void onEnable() {
@@ -35,7 +36,8 @@ public class Main extends JavaPlugin {
 
         // Start growth update task
         new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
-        logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
+            logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
+
     }
 
     @Override
@@ -51,6 +53,7 @@ public class Main extends JavaPlugin {
 
     private void loadConfigValues() {
         this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
+        this.debug = getConfig().getBoolean("debug", false); // Read debug mode value
     }
 
     public static Main getInstance() {
