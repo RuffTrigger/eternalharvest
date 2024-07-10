@@ -136,7 +136,9 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
+            if (Main.getInstance().getConfig().getBoolean(" debug")){
             logger.info("Retrieved " + plants.size() + " plants from database.");
+            }
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Error retrieving plants from database.", e);
         }
