@@ -1,9 +1,6 @@
 package org.rufftrigger.eternalharvest;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -63,14 +60,29 @@ public class GrowthUpdateTask extends BukkitRunnable {
 
                 Block block = location.getBlock();
 
-                if (block.getType() == plant.getMaterial() && block.getBlockData() instanceof Ageable) {
-                    Ageable ageable = (Ageable) block.getBlockData();
-                    int maxAge = ageable.getMaximumAge();
-                    int newAge = (int) ((growthProgress / 100.0) * maxAge);
-                    ageable.setAge(newAge);
-                    block.setBlockData(ageable);
+                if (block.getType() == plant.getMaterial()) {
+                    if (block.getType().name().endsWith("_SAPLING")) {
+                        // Handle sapling growth to tree
+                        if (growthProgress >= 100) {
+                            block.setType(Material.AIR); // Remove sapling
+                            TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
+                            boolean treeGenerated = location.getWorld().generateTree(location, treeType);
+                            if (treeGenerated) {
+                                Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
+                            } else {
+                                Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
+                            }
+                        }
+                    } else if (block.getBlockData() instanceof Ageable) {
+                        // Handle other ageable plants
+                        Ageable ageable = (Ageable) block.getBlockData();
+                        int maxAge = ageable.getMaximumAge();
+                        int newAge = (int) ((growthProgress / 100.0) * maxAge);
+                        ageable.setAge(newAge);
+                        block.setBlockData(ageable);
 
-                    Main.getInstance().getLogger().info("Updated block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                        Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                    }
                 }
 
                 if (!wasLoaded) {
@@ -79,4 +91,27 @@ public class GrowthUpdateTask extends BukkitRunnable {
             }
         });
     }
+
+    private TreeType getTreeTypeFromMaterial(Material material) {
+        switch (material) {
+            case OAK_SAPLING:
+                return TreeType.TREE;
+            case BIRCH_SAPLING:
+                return TreeType.BIRCH;
+            case SPRUCE_SAPLING:
+                return TreeType.REDWOOD;
+            case JUNGLE_SAPLING:
+                return TreeType.SMALL_JUNGLE;
+            case ACACIA_SAPLING:
+                return TreeType.ACACIA;
+            case DARK_OAK_SAPLING:
+                return TreeType.DARK_OAK;
+            case CHERRY_SAPLING:
+                return TreeType.CHERRY;
+            default:
+                return TreeType.TREE; // Default to oak sapling behavior
+        }
+    }
+
+
 }
