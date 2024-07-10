@@ -1,16 +1,16 @@
 # src/main/resources/config.yml
 
-update-interval-seconds: 60
+update-interval-seconds: 60 # default is 60
 growth-times:
   wheat: 1200
   carrots: 600
   potatoes: 600
   beetroots: 600
-  oak_sapling: 65
-  birch_sapling: 65
-  spruce_sapling: 65
-  jungle_sapling: 65
-  acacia_sapling: 65
-  dark_oak_sapling: 65
+  oak_sapling: 1200
+  birch_sapling: 1200
+  spruce_sapling: 1200
+  jungle_sapling: 1200
+  acacia_sapling: 1200
+  dark_oak_sapling: 1200
 
   debug: false
