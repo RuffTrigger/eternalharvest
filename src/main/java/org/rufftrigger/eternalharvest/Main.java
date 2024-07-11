@@ -24,10 +24,7 @@ public class Main extends JavaPlugin {
 
         // Load config values
         loadConfigValues();
-        if (Main.getInstance().debug) {
-            // Your debug code here
-            logger.info("Debug mode is enabled!");
-        }
+
         // Initialize database
         this.databaseManager = new DatabaseManager();
         this.databaseManager.setupDatabase();
@@ -56,6 +53,11 @@ public class Main extends JavaPlugin {
     private void loadConfigValues() {
         this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
         this.debug = getConfig().getBoolean("debug", false); // Read debug mode value
+        if (debug) {
+            logger.info("Debug mode is enabled.");
+        } else {
+            logger.info("Debug mode is disabled.");
+        }
     }
 
     public static Main getInstance() {
