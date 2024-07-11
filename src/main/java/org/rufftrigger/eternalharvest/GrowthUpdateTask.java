@@ -68,7 +68,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                             TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
                             boolean treeGenerated = location.getWorld().generateTree(location, treeType);
                             if (treeGenerated) {
-                                if (Main.getInstance().getConfig().getBoolean("debug")) {
+                                if (Main.getInstance().debug) {
                                     Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
                                 }
 
@@ -86,7 +86,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                         int newAge = (int) ((growthProgress / 100.0) * maxAge);
                         ageable.setAge(newAge);
                         block.setBlockData(ageable);
-                        if (Main.getInstance().getConfig().getBoolean(" debug")){
+                        if (Main.getInstance().debug){
                             Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
 
                         }

@@ -83,7 +83,7 @@ public class DatabaseManager {
                     insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
                     insertStatement.executeUpdate();
                     insertStatement.close();
-                    if (Main.getInstance().getConfig().getBoolean(" debug")){
+                    if (Main.getInstance().debug){
                         logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
@@ -106,7 +106,7 @@ public class DatabaseManager {
                     deleteStatement.setString(2, material.toString());
                     deleteStatement.executeUpdate();
                     deleteStatement.close();
-                    if (Main.getInstance().getConfig().getBoolean(" debug")){
+                    if (Main.getInstance().debug){
                         logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
@@ -136,7 +136,7 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
-            if (Main.getInstance().getConfig().getBoolean(" debug")){
+            if (Main.getInstance().debug){
             logger.info("Retrieved " + plants.size() + " plants from database.");
             }
         } catch (SQLException e) {
@@ -157,7 +157,7 @@ public class DatabaseManager {
                     updateStatement.setInt(2, id);
                     updateStatement.executeUpdate();
                     updateStatement.close();
-                    if (Main.getInstance().getConfig().getBoolean(" debug")){
+                    if (Main.getInstance().debug){
                         logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
