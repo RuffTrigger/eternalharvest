@@ -13,4 +13,4 @@ growth-times:
   acacia_sapling: 1200
   dark_oak_sapling: 1200
 
-debug: false # set to true to Enable this, if you would like to see the debugging values
+debug: false # set to true to enable this, if you would like to see the debugging values
