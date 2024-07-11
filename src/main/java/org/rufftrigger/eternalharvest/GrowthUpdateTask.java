@@ -68,7 +68,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                             TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
                             boolean treeGenerated = location.getWorld().generateTree(location, treeType);
                             if (treeGenerated) {
-                                if (Main.getInstance().getConfig().getBoolean(" debug")){
+                                if (Main.getInstance().getConfig().getBoolean("debug")) {
                                     Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
                                 }
 

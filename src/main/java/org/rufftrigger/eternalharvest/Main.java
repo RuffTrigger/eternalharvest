@@ -36,8 +36,7 @@ public class Main extends JavaPlugin {
 
         // Start growth update task
         new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
-            logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
-
+        logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
     }
 
     @Override
