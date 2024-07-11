@@ -76,7 +76,9 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                 // Remove the plant data from the database
                                 databaseManager.recordRemoval(location, plant.getMaterial());
                             } else {
-                                Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
+                                Main.getInstance().getLogger().warning("Failed to grow " + treeType.name() + " at " + location.toString());
+                                databaseManager.recordRemoval(location, plant.getMaterial());
+
                             }
                         }
                     } else if (block.getBlockData() instanceof Ageable) {
