@@ -24,7 +24,10 @@ public class Main extends JavaPlugin {
 
         // Load config values
         loadConfigValues();
-
+        if (Main.getInstance().debug) {
+            // Your debug code here
+            Main.getInstance().getLogger().info("Debug mode is enabled!");
+        }
         // Initialize database
         this.databaseManager = new DatabaseManager();
         this.databaseManager.setupDatabase();
