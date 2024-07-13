@@ -81,33 +81,45 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                 // Random chance for a bee hive to be added
                                 if (Math.random() < Main.getInstance().getBeeHiveChance()) {
                                     Random random = new Random();
-                                    BlockFace[] possibleFaces = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
-                                    for (BlockFace face : possibleFaces) {
-                                        Block hiveLocation = location.getBlock().getRelative(face);
-                                        Block adjacentLog = hiveLocation.getRelative(BlockFace.UP);
+                                    boolean hivePlaced = false;
 
-                                        // Ensure the hive is attached to the tree and has air space
-                                        if ((hiveLocation.getType() == Material.AIR || hiveLocation.getType() == Material.OAK_LEAVES)
-                                                && adjacentLog.getType().toString().endsWith("_LOG")) {
-                                            // Clear the block for the hive if it's a leaf
-                                            if (hiveLocation.getType() == Material.OAK_LEAVES) {
-                                                hiveLocation.setType(Material.AIR);
-                                            }
-                                            hiveLocation.setType(Material.BEE_NEST);
-                                            int beeCount = random.nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
-                                            for (int i = 0; i < beeCount; i++) {
-                                                Bee bee = (Bee) block.getWorld().spawnEntity(hiveLocation.getLocation().add(0.5, 0, 0.5), EntityType.BEE);
-                                                bee.setHive(hiveLocation.getLocation());
-                                                if (Main.getInstance().debug) {
-                                                    Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bee's, spawned at " + hiveLocation.getLocation().toString() + " ");
+                                    // Loop through blocks in a radius to find suitable leaf blocks
+                                    for (int dx = -2; dx <= 2; dx++) {
+                                        for (int dz = -2; dz <= 2; dz++) {
+                                            for (int dy = 0; dy <= 4; dy++) {
+                                                Block potentialLeafBlock = location.getWorld().getBlockAt(location.getBlockX() + dx, location.getBlockY() + dy, location.getBlockZ() + dz);
+                                                if (Tag.LEAVES.isTagged(potentialLeafBlock.getType()) && potentialLeafBlock.getRelative(BlockFace.DOWN).getType() == Material.AIR) {
+                                                    Block hiveLocation = potentialLeafBlock.getRelative(BlockFace.DOWN);
+                                                    if (Main.getInstance().debug) {
+                                                        Main.getInstance().getLogger().info("Placing hive at " + hiveLocation.getLocation().toString());
+                                                    }
+                                                    hiveLocation.setType(Material.BEE_NEST);
+                                                    int beeCount = random.nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
+                                                    for (int i = 0; i < beeCount; i++) {
+                                                        Bee bee = (Bee) block.getWorld().spawnEntity(hiveLocation.getLocation().add(0.5, 0, 0.5), EntityType.BEE);
+                                                        bee.setHive(hiveLocation.getLocation());
+                                                        if (Main.getInstance().debug) {
+                                                            Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bees, spawned at " + hiveLocation.getLocation().toString() + " ");
+                                                        }
+                                                    }
+                                                    hivePlaced = true;
+                                                    break;
                                                 }
                                             }
-                                            break;
+                                            if (hivePlaced) break;
+                                        }
+                                        if (hivePlaced) break;
+                                    }
+                                    if (!hivePlaced) {
+                                        if (Main.getInstance().debug) {
+                                            Main.getInstance().getLogger().info("No suitable location found for placing the bee hive.");
                                         }
                                     }
                                 }
                             } else {
-                                Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
+                                if (Main.getInstance().debug) {
+                                    Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
+                                }
                                 // Remove the tree data from the database
                                 databaseManager.recordRemoval(location, plant.getMaterial());
                             }
@@ -119,8 +131,9 @@ public class GrowthUpdateTask extends BukkitRunnable {
                         int newAge = (int) ((growthProgress / 100.0) * maxAge);
                         ageable.setAge(newAge);
                         block.setBlockData(ageable);
-
-                        Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                        if (Main.getInstance().debug) {
+                            Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
+                        }
                     }
                 }
 
