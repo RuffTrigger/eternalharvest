@@ -12,6 +12,9 @@ public class Main extends JavaPlugin {
     private Logger logger;
     private int updateIntervalSeconds;
     public boolean debug; // Variable to store debug mode status
+    private double beeHiveChance;
+    private int minBeesPerHive;
+    private int maxBeesPerHive;
 
     @Override
     public void onEnable() {
@@ -53,11 +56,26 @@ public class Main extends JavaPlugin {
     private void loadConfigValues() {
         this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
         this.debug = getConfig().getBoolean("debug", false); // Read debug mode value
+        this.beeHiveChance = getConfig().getDouble("bee-hive-chance", 0.05); // Default to 5% chance if not specified
+        this.minBeesPerHive = getConfig().getInt("min-bees-per-hive", 1); // Default to 1 bee if not specified
+        this.maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3); // Default to 3 bees if not specified
+
         if (debug) {
             logger.info("Debug mode is enabled.");
         } else {
             logger.info("Debug mode is disabled.");
         }
+    }
+    public double getBeeHiveChance() {
+        return beeHiveChance;
+    }
+
+    public int getMinBeesPerHive() {
+        return minBeesPerHive;
+    }
+
+    public int getMaxBeesPerHive() {
+        return maxBeesPerHive;
     }
 
     public static Main getInstance() {

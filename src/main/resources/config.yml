@@ -13,4 +13,12 @@ growth-times:
   acacia_sapling: 1200
   dark_oak_sapling: 1200
 
+
+# The chance (0.0 to 1.0) for a bee hive to be added when a tree grows from a sapling
+bee-hive-chance: 0.05
+
+# The minimum and maximum number of bees per hive
+min-bees-per-hive: 1
+max-bees-per-hive: 3
+
 debug: false # set to true to enable this, if you would like to see the debugging values

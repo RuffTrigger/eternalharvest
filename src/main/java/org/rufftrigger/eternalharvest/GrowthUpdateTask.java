@@ -2,10 +2,14 @@ package org.rufftrigger.eternalharvest;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Ageable;
+import org.bukkit.entity.Bee;
+import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.List;
+import java.util.Random;
 
 public class GrowthUpdateTask extends BukkitRunnable {
 
@@ -71,14 +75,26 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                 if (Main.getInstance().debug) {
                                     Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
                                 }
-
-
-                                // Remove the plant data from the database
+                                // Remove the tree data from the database
                                 databaseManager.recordRemoval(location, plant.getMaterial());
+
+                                // Random chance for a bee hive to be added
+                                if (Math.random() < Main.getInstance().getBeeHiveChance()) {
+                                    Block hive = block.getRelative(BlockFace.DOWN);
+                                    hive.setType(Material.BEE_NEST);
+                                    int beeCount = new Random().nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
+                                    for (int i = 0; i < beeCount; i++) {
+                                        Bee bee = (Bee) block.getWorld().spawnEntity(hive.getLocation().add(0, -1, 0), EntityType.BEE);
+                                        bee.setHive(hive.getLocation());
+                                        if (Main.getInstance().debug){
+                                            Main.getInstance().getLogger().info("Bee Hive including"+beeCount+" bee's, spawned at " + hive.getLocation().toString() + " ");
+                                        }
+                                    }
+                                }
                             } else {
-                                Main.getInstance().getLogger().warning("Failed to grow " + treeType.name() + " at " + location.toString());
+                                Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
+                                // Remove the tree data from the database
                                 databaseManager.recordRemoval(location, plant.getMaterial());
-
                             }
                         }
                     } else if (block.getBlockData() instanceof Ageable) {
@@ -88,11 +104,8 @@ public class GrowthUpdateTask extends BukkitRunnable {
                         int newAge = (int) ((growthProgress / 100.0) * maxAge);
                         ageable.setAge(newAge);
                         block.setBlockData(ageable);
-                        if (Main.getInstance().debug){
-                            Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
 
-                        }
-
+                        Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
                     }
                 }
 
