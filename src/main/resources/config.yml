@@ -15,6 +15,7 @@ growth-times:
 
 
 # The chance (0.0 to 1.0) for a bee hive to be added when a tree grows from a sapling
+# The default 0.05 gives a 5% chance for the bee hive to be added
 bee-hive-chance: 0.05
 
 # The minimum and maximum number of bees per hive
