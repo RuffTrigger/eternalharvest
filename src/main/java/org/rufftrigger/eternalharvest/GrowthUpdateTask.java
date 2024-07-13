@@ -80,14 +80,29 @@ public class GrowthUpdateTask extends BukkitRunnable {
 
                                 // Random chance for a bee hive to be added
                                 if (Math.random() < Main.getInstance().getBeeHiveChance()) {
-                                    Block hive = block.getRelative(BlockFace.DOWN);
-                                    hive.setType(Material.BEE_NEST);
-                                    int beeCount = new Random().nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
-                                    for (int i = 0; i < beeCount; i++) {
-                                        Bee bee = (Bee) block.getWorld().spawnEntity(hive.getLocation().add(0, -1, 0), EntityType.BEE);
-                                        bee.setHive(hive.getLocation());
-                                        if (Main.getInstance().debug){
-                                            Main.getInstance().getLogger().info("Bee Hive including"+beeCount+" bee's, spawned at " + hive.getLocation().toString() + " ");
+                                    Random random = new Random();
+                                    BlockFace[] possibleFaces = {BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST};
+                                    for (BlockFace face : possibleFaces) {
+                                        Block hiveLocation = location.getBlock().getRelative(face);
+                                        Block adjacentLog = hiveLocation.getRelative(BlockFace.UP);
+
+                                        // Ensure the hive is attached to the tree and has air space
+                                        if ((hiveLocation.getType() == Material.AIR || hiveLocation.getType() == Material.OAK_LEAVES)
+                                                && adjacentLog.getType().toString().endsWith("_LOG")) {
+                                            // Clear the block for the hive if it's a leaf
+                                            if (hiveLocation.getType() == Material.OAK_LEAVES) {
+                                                hiveLocation.setType(Material.AIR);
+                                            }
+                                            hiveLocation.setType(Material.BEE_NEST);
+                                            int beeCount = random.nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
+                                            for (int i = 0; i < beeCount; i++) {
+                                                Bee bee = (Bee) block.getWorld().spawnEntity(hiveLocation.getLocation().add(0.5, 0, 0.5), EntityType.BEE);
+                                                bee.setHive(hiveLocation.getLocation());
+                                                if (Main.getInstance().debug) {
+                                                    Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bee's, spawned at " + hiveLocation.getLocation().toString() + " ");
+                                                }
+                                            }
+                                            break;
                                         }
                                     }
                                 }
