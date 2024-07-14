@@ -10,8 +10,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -190,19 +189,35 @@ public class DatabaseManager {
                 try {
                     // Fetch all plant data from the database
                     List<PlantData> plants = getAllPlants();
+                    Map<Location, List<PlantData>> locationToPlantsMap = new HashMap<>();
+
                     for (PlantData plant : plants) {
                         Location location = LocationUtil.fromString(plant.getLocation());
                         if (location != null) {
                             Block block = location.getBlock();
                             if (block.getType() != plant.getMaterial() || !isAgeableSame(block, plant)) {
-                                // If the block is not the same material or not the same ageable, remove the record
-                                deletePlantDataById(plant.getId());
-                                if (Main.getInstance().debug) {
-                                    logger.info("Removed invalid plant data with ID=" + plant.getId() + " at location=" + plant.getLocation());
-                                }
+                                // If the block is not the same material or not the same ageable, add to the map
+                                locationToPlantsMap
+                                        .computeIfAbsent(location, k -> new ArrayList<>())
+                                        .add(plant);
                             }
                         }
                     }
+
+                    for (Map.Entry<Location, List<PlantData>> entry : locationToPlantsMap.entrySet()) {
+                        List<PlantData> invalidPlants = entry.getValue();
+                        if (!invalidPlants.isEmpty()) {
+                            // Sort the invalid entries by plant_timestamp
+                            invalidPlants.sort(Comparator.comparingLong(PlantData::getPlantTimestamp));
+                            // Remove the oldest entry
+                            PlantData oldestPlant = invalidPlants.get(0);
+                            deletePlantDataById(oldestPlant.getId());
+                            if (Main.getInstance().debug) {
+                                logger.info("Removed oldest invalid plant data with ID=" + oldestPlant.getId() + " at location=" + oldestPlant.getLocation());
+                            }
+                        }
+                    }
+
                 } catch (SQLException e) {
                     logger.log(Level.SEVERE, "Error maintaining database.", e);
                 }
