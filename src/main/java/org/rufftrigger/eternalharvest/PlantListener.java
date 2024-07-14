@@ -30,7 +30,7 @@ public class PlantListener implements Listener {
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
         }
         else{
-            Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
             Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT added to plant_growth.db");
         }
     }
