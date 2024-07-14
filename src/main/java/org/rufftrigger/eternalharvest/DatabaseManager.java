@@ -237,4 +237,20 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+    public void VacuumDatabase() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement vacuumStatement = connection.prepareStatement("VACUUM;");
+                    vacuumStatement.executeUpdate();
+                    vacuumStatement.close();
+                    logger.info("Database vacuumed to reduce file size.");
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error vacuuming database.", e);
+                }
+            }
+        }.runTaskAsynchronously(Main.getInstance());
+    }
+
 }

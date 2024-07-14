@@ -17,6 +17,7 @@ public class Main extends JavaPlugin {
     private int maxBeesPerHive;
     private int tallMangroveChange;
     private int maintenanceInterval;
+    private int vacuumInterval;
 
     @Override
     public void onEnable() {
@@ -46,6 +47,11 @@ public class Main extends JavaPlugin {
         // Start maintenance task
         new MaintenanceTask(databaseManager).runTaskTimerAsynchronously(this, 0, maintenanceInterval * 20); // Convert seconds to ticks
         logger.info("Maintenance Task started with interval " + maintenanceInterval + " seconds.");
+
+        // Start vacuumDatabase
+        new VacuumDatabaseScheduler(databaseManager).runTaskTimerAsynchronously(this, 0, vacuumInterval * 20); // Convert seconds to ticks
+        logger.info("Maintenance Task started with interval " + vacuumInterval + " seconds.");
+
     }
 
     @Override
@@ -67,6 +73,9 @@ public class Main extends JavaPlugin {
         this.maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3); // Default to 3 bees if not specified
         this.tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30); // Default will be set to 30
         this.maintenanceInterval = getConfig().getInt("maintenance-interval", 600); // Default to 5 minutes
+        // Schedule database vacuuming task (e.g., every hour)
+        this.vacuumInterval = getConfig().getInt("vacuum-interval", 72000); // Default to 1 hour (72000 ticks)
+
         if (debug) {
             logger.info("Debug mode is enabled.");
         } else {
@@ -83,10 +92,6 @@ public class Main extends JavaPlugin {
 
     public int getMaxBeesPerHive() {
         return maxBeesPerHive;
-    }
-
-    public int tallMangroveChange() {
-        return tallMangroveChange;
     }
 
     public static Main getInstance() {
