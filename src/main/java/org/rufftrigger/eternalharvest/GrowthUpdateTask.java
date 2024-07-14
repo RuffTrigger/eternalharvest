@@ -163,26 +163,27 @@ public class GrowthUpdateTask extends BukkitRunnable {
             case CHERRY_SAPLING:
                 return TreeType.CHERRY;
             case MANGROVE_PROPAGULE:
-                // Constants for the range of random numbers
-                final int MANGROVE_MIN = 50;
-                final int MANGROVE_MAX = 100;
+                // Read the tall mangrove change percentage from the config
+                int tallMangroveChange = Main.getInstance().getConfig().getInt("TALL_MANGROVE_CHANGE", 30);
 
-                // Generate a random number between MANGROVE_MIN and MANGROVE_MAX inclusive
+                // Generate a random value between 0 and 99 inclusive
                 Random random = new Random(System.currentTimeMillis());
-                int MANGROVE_Value = random.nextInt(MANGROVE_MAX - MANGROVE_MIN + 1) + MANGROVE_MIN;
+                int randomValue = random.nextInt(100);
 
                 // Determine the tree type based on the generated value
-                if (MANGROVE_Value > Main.getInstance().tallMangroveChange()) {  // Change condition to > 50
+                if (randomValue < tallMangroveChange) {
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info("Growing Tall Mangrove");
+                    }
                     return TreeType.TALL_MANGROVE;
-                } else {  // Handle the case when MANGROVE_Value <= 50
+                } else {
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info("Growing a normal Mangrove");
+                    }
                     return TreeType.MANGROVE;
                 }
             default:
                 return TreeType.TREE; // Default to oak sapling behavior
         }
     }
-
-
-
-
 }
