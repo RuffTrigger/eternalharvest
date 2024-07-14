@@ -187,57 +187,54 @@ public class DatabaseManager {
             @Override
             public void run() {
                 try {
-                    // Fetch all plant data from the database
-                    List<PlantData> plants = getAllPlants();
-                    Map<Location, List<PlantData>> locationToPlantsMap = new HashMap<>();
+                    // Query to find duplicates based on location
+                    String query = "SELECT id, location FROM plant_data " +
+                            "GROUP BY location " +
+                            "HAVING COUNT(*) > 1";
 
-                    for (PlantData plant : plants) {
-                        Location location = LocationUtil.fromString(plant.getLocation());
-                        if (location != null) {
-                            Block block = location.getBlock();
-                            if (block.getType() != plant.getMaterial() || !isAgeableSame(block, plant)) {
-                                // If the block is not the same material or not the same ageable, add to the map
-                                locationToPlantsMap
-                                        .computeIfAbsent(location, k -> new ArrayList<>())
-                                        .add(plant);
-                            }
+                    PreparedStatement statement = connection.prepareStatement(query);
+                    ResultSet resultSet = statement.executeQuery();
+
+                    while (resultSet.next()) {
+                        String location = resultSet.getString("location");
+                        int idToKeep = -1;
+                        long latestTimestamp = Long.MIN_VALUE;
+
+                        // Find the latest entry among duplicates
+                        PreparedStatement findDuplicatesStatement = connection.prepareStatement(
+                                "SELECT id, plant_timestamp FROM plant_data WHERE location = ? ORDER BY plant_timestamp DESC LIMIT 1"
+                        );
+                        findDuplicatesStatement.setString(1, location);
+                        ResultSet duplicatesResultSet = findDuplicatesStatement.executeQuery();
+
+                        if (duplicatesResultSet.next()) {
+                            idToKeep = duplicatesResultSet.getInt("id");
+                            latestTimestamp = duplicatesResultSet.getLong("plant_timestamp");
+                        }
+
+                        duplicatesResultSet.close();
+                        findDuplicatesStatement.close();
+
+                        // Delete all except the latest entry
+                        PreparedStatement deleteStatement = connection.prepareStatement(
+                                "DELETE FROM plant_data WHERE location = ? AND id != ?"
+                        );
+                        deleteStatement.setString(1, location);
+                        deleteStatement.setInt(2, idToKeep);
+                        deleteStatement.executeUpdate();
+                        deleteStatement.close();
+
+                        if (Main.getInstance().debug) {
+                            Main.getInstance().getLogger().info("Removed duplicates for location: " + location);
                         }
                     }
 
-                    for (Map.Entry<Location, List<PlantData>> entry : locationToPlantsMap.entrySet()) {
-                        List<PlantData> invalidPlants = entry.getValue();
-                        if (!invalidPlants.isEmpty()) {
-                            // Sort the invalid entries by plant_timestamp
-                            invalidPlants.sort(Comparator.comparingLong(PlantData::getPlantTimestamp));
-                            // Remove the oldest entry
-                            PlantData oldestPlant = invalidPlants.get(0);
-                            deletePlantDataById(oldestPlant.getId());
-                            if (Main.getInstance().debug) {
-                                logger.info("Removed oldest invalid plant data with ID=" + oldestPlant.getId() + " at location=" + oldestPlant.getLocation());
-                            }
-                        }
-                    }
-
+                    resultSet.close();
+                    statement.close();
                 } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error maintaining database.", e);
+                    logger.log(Level.SEVERE, "Error removing duplicates from database.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
-    }
-
-    private boolean isAgeableSame(Block block, PlantData plant) {
-        if (!(block.getBlockData() instanceof Ageable)) {
-            return true; // If the block is not ageable, it's considered the same for this check
-        }
-        Ageable ageable = (Ageable) block.getBlockData();
-        int age = ageable.getAge();
-        return age == plant.getGrowthProgress();
-    }
-
-    private void deletePlantDataById(int id) throws SQLException {
-        PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM plant_data WHERE id = ?;");
-        deleteStatement.setInt(1, id);
-        deleteStatement.executeUpdate();
-        deleteStatement.close();
     }
 }
