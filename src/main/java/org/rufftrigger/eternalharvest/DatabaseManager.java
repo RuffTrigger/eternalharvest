@@ -252,5 +252,4 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-
 }
