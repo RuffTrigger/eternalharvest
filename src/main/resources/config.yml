@@ -2,6 +2,7 @@
 
 update-interval-seconds: 60 # default is 60
 maintenance-interval: 600
+vacuum-interval: 10800
 
 growth-times:
   wheat: 1200

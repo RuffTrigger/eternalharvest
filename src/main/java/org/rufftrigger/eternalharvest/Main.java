@@ -74,7 +74,7 @@ public class Main extends JavaPlugin {
         this.tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30); // Default will be set to 30
         this.maintenanceInterval = getConfig().getInt("maintenance-interval", 600); // Default to 5 minutes
         // Schedule database vacuuming task (e.g., every hour)
-        this.vacuumInterval = getConfig().getInt("vacuum-interval", 72000); // Default to 1 hour (72000 ticks)
+        this.vacuumInterval = getConfig().getInt("vacuum-interval", 10800); // Default to 3 hour
 
         if (debug) {
             logger.info("Debug mode is enabled.");
