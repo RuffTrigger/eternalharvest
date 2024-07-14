@@ -65,7 +65,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 Block block = location.getBlock();
 
                 if (block.getType() == plant.getMaterial()) {
-                    if (block.getType().name().endsWith("_SAPLING")) {
+                    if (block.getType().name().endsWith("_SAPLING") || (block.getType().name().startsWith("MANGROVE") && block.getType().name().endsWith("_PROPAGULE"))) {
                         // Handle sapling growth to tree
                         if (growthProgress >= 100) {
                             block.setType(Material.AIR); // Remove sapling
