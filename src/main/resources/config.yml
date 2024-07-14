@@ -6,13 +6,6 @@ growth-times:
   carrots: 600
   potatoes: 600
   beetroots: 600
-  oak_sapling: 1200
-  birch_sapling: 1200
-  spruce_sapling: 1200
-  jungle_sapling: 1200
-  acacia_sapling: 1200
-  dark_oak_sapling: 1200
-  cherry_sapling: 1200
   nether_wart: 2400
   sweet_berries: 400
   cocoa_beans: 600
@@ -20,6 +13,13 @@ growth-times:
   melon_stems: 1200
   bamboo: 800
   kelp: 1500
+  oak_sapling: 1200
+  birch_sapling: 1200
+  spruce_sapling: 1200
+  jungle_sapling: 1200
+  acacia_sapling: 1200
+  dark_oak_sapling: 1200
+  cherry_sapling: 1200
 
 
 # The chance (0.0 to 1.0) for a bee hive to be added when a tree grows from a sapling
