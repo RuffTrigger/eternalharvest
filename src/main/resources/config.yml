@@ -8,11 +8,10 @@ growth-times:
   potatoes: 600
   beetroots: 600
   nether_wart: 2400
-  sweet_berries: 400
-  cocoa_beans: 600
-  pumpkin_stems: 1200
-  melon_stems: 1200
-  bamboo: 800
+  sweet_berry_bush: 400
+  cocoa: 600
+  pumpkin_stem: 1200
+  melon_stem: 1200
   kelp: 1500
   oak_sapling: 1200
   birch_sapling: 1200
@@ -21,6 +20,7 @@ growth-times:
   acacia_sapling: 1200
   dark_oak_sapling: 1200
   cherry_sapling: 1200
+  bamboo_sapling: 800
 
 # The chance (0.0 to 1.0) for a bee hive to be added when a tree grows from a sapling
 # The default 0.05 gives a 5% chance for the bee hive to be added
