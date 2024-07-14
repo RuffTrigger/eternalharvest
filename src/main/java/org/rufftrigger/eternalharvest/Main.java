@@ -16,6 +16,7 @@ public class Main extends JavaPlugin {
     private int minBeesPerHive;
     private int maxBeesPerHive;
     private int tallMangroveChange;
+    private int maintenanceInterval;
 
     @Override
     public void onEnable() {
@@ -41,6 +42,10 @@ public class Main extends JavaPlugin {
         // Start growth update task
         new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
         logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
+
+        // Start maintenance task
+        new MaintenanceTask(databaseManager).runTaskTimerAsynchronously(this, 0, maintenanceInterval * 20); // Convert seconds to ticks
+        logger.info("Maintenance Task started with interval " + maintenanceInterval + " seconds.");
     }
 
     @Override
@@ -61,7 +66,7 @@ public class Main extends JavaPlugin {
         this.minBeesPerHive = getConfig().getInt("min-bees-per-hive", 1); // Default to 1 bee if not specified
         this.maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3); // Default to 3 bees if not specified
         this.tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30); // Default will be set to 30
-
+        this.maintenanceInterval = getConfig().getInt("maintenance-interval", 600); // Default to 5 minutes
         if (debug) {
             logger.info("Debug mode is enabled.");
         } else {

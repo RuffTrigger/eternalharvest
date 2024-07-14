@@ -1,6 +1,10 @@
 package org.rufftrigger.eternalharvest;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
@@ -69,7 +73,7 @@ public class DatabaseManager {
         }
     }
 
-    public void recordPlanting(final org.bukkit.Location location, final Material material, final int growthTime) {
+    public void recordPlanting(final Location location, final Material material, final int growthTime) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -94,7 +98,7 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
-    public void recordRemoval(final org.bukkit.Location location, final Material material) {
+    public void recordRemoval(final Location location, final Material material) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -137,7 +141,7 @@ public class DatabaseManager {
             resultSet.close();
             statement.close();
             if (Main.getInstance().debug){
-            logger.info("Retrieved " + plants.size() + " plants from database.");
+                logger.info("Retrieved " + plants.size() + " plants from database.");
             }
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Error retrieving plants from database.", e);
@@ -177,5 +181,48 @@ public class DatabaseManager {
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Error closing database connection.", e);
         }
+    }
+
+    public void maintainDatabase() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    // Fetch all plant data from the database
+                    List<PlantData> plants = getAllPlants();
+                    for (PlantData plant : plants) {
+                        Location location = LocationUtil.fromString(plant.getLocation());
+                        if (location != null) {
+                            Block block = location.getBlock();
+                            if (block.getType() != plant.getMaterial() || !isAgeableSame(block, plant)) {
+                                // If the block is not the same material or not the same ageable, remove the record
+                                deletePlantDataById(plant.getId());
+                                if (Main.getInstance().debug) {
+                                    logger.info("Removed invalid plant data with ID=" + plant.getId() + " at location=" + plant.getLocation());
+                                }
+                            }
+                        }
+                    }
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error maintaining database.", e);
+                }
+            }
+        }.runTaskAsynchronously(Main.getInstance());
+    }
+
+    private boolean isAgeableSame(Block block, PlantData plant) {
+        if (!(block.getBlockData() instanceof Ageable)) {
+            return true; // If the block is not ageable, it's considered the same for this check
+        }
+        Ageable ageable = (Ageable) block.getBlockData();
+        int age = ageable.getAge();
+        return age == plant.getGrowthProgress();
+    }
+
+    private void deletePlantDataById(int id) throws SQLException {
+        PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM plant_data WHERE id = ?;");
+        deleteStatement.setInt(1, id);
+        deleteStatement.executeUpdate();
+        deleteStatement.close();
     }
 }

@@ -1,7 +1,7 @@
 # src/main/resources/config.yml
 
 update-interval-seconds: 60 # default is 60
-
+maintenance-interval: 600
 growth-times:
   wheat: 1200
   carrots: 600
