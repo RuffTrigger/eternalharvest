@@ -15,6 +15,7 @@ public class Main extends JavaPlugin {
     private double beeHiveChance;
     private int minBeesPerHive;
     private int maxBeesPerHive;
+    private int tallMangroveChange;
 
     @Override
     public void onEnable() {
@@ -59,6 +60,7 @@ public class Main extends JavaPlugin {
         this.beeHiveChance = getConfig().getDouble("bee-hive-chance", 0.05); // Default to 5% chance if not specified
         this.minBeesPerHive = getConfig().getInt("min-bees-per-hive", 1); // Default to 1 bee if not specified
         this.maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3); // Default to 3 bees if not specified
+        this.tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30); // Default will be set to 30
 
         if (debug) {
             logger.info("Debug mode is enabled.");
@@ -76,6 +78,10 @@ public class Main extends JavaPlugin {
 
     public int getMaxBeesPerHive() {
         return maxBeesPerHive;
+    }
+
+    public int tallMangroveChange() {
+        return tallMangroveChange;
     }
 
     public static Main getInstance() {

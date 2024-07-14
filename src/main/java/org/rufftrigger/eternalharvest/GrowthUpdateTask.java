@@ -145,6 +145,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
     }
 
 
+
     private TreeType getTreeTypeFromMaterial(Material material) {
         switch (material) {
             case OAK_SAPLING:
@@ -161,10 +162,27 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 return TreeType.DARK_OAK;
             case CHERRY_SAPLING:
                 return TreeType.CHERRY;
+            case MANGROVE_PROPAGULE:
+                // Constants for the range of random numbers
+                final int MANGROVE_MIN = 50;
+                final int MANGROVE_MAX = 100;
+
+                // Generate a random number between MANGROVE_MIN and MANGROVE_MAX inclusive
+                Random random = new Random(System.currentTimeMillis());
+                int MANGROVE_Value = random.nextInt(MANGROVE_MAX - MANGROVE_MIN + 1) + MANGROVE_MIN;
+
+                // Determine the tree type based on the generated value
+                if (MANGROVE_Value > Main.getInstance().tallMangroveChange()) {  // Change condition to > 50
+                    return TreeType.TALL_MANGROVE;
+                } else {  // Handle the case when MANGROVE_Value <= 50
+                    return TreeType.MANGROVE;
+                }
             default:
                 return TreeType.TREE; // Default to oak sapling behavior
         }
     }
+
+
 
 
 }
