@@ -17,9 +17,16 @@ public class PlantListener implements Listener {
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Material material = event.getBlock().getType();
+        if (Main.getInstance().debug) {
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was placed at " + event.getBlock().getLocation() + " finding growth time");
+        }
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed from plant_growth.db");
+            }
             // Record planting in the database asynchronously
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
         }
@@ -28,9 +35,16 @@ public class PlantListener implements Listener {
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Material material = event.getBlock().getType();
+        if (Main.getInstance().debug) {
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was placed at " + event.getBlock().getLocation() + " finding growth time");
+        }
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed from plant_growth.db");
+            }
             // Record removal in the database asynchronously
             databaseManager.recordRemoval(event.getBlock().getLocation(), material);
         }
