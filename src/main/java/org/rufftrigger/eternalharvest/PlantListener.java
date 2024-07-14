@@ -24,11 +24,14 @@ public class PlantListener implements Listener {
 
         if (growthTime != -1) {
             if (Main.getInstance().debug) {
-                Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
-                Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed from plant_growth.db");
+                Main.getInstance().getLogger().info("Growth time was found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
             }
             // Record planting in the database asynchronously
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
+        }
+        else{
+            Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT added to plant_growth.db");
         }
     }
 
@@ -43,6 +46,10 @@ public class PlantListener implements Listener {
         if (growthTime != -1) {
             // Record removal in the database asynchronously
             databaseManager.recordRemoval(event.getBlock().getLocation(), material);
+        }
+        else{
+            Main.getInstance().getLogger().info("Growth time was not found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT Removed to plant_growth.db");
         }
     }
 }
