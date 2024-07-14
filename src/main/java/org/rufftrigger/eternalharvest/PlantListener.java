@@ -24,7 +24,7 @@ public class PlantListener implements Listener {
 
         if (growthTime != -1) {
             if (Main.getInstance().debug) {
-                Main.getInstance().getLogger().info("Growth time was found for " +material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                Main.getInstance().getLogger().info("Growth time (" + growthTime + " was found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
             }
             // Record planting in the database asynchronously
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
