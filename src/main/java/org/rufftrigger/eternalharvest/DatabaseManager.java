@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class DatabaseManager {
 
     private Connection connection;
-    private Logger logger;
+    private final Logger logger;
 
     public DatabaseManager() {
         this.logger = Main.getInstance().getLogger();
