@@ -3,14 +3,14 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -77,48 +77,17 @@ public class DatabaseManager {
             @Override
             public void run() {
                 try {
-                    // Check if there is an existing record with the same location but different material
-                    PreparedStatement checkStatement = connection.prepareStatement(
-                            "SELECT id, material FROM plant_data WHERE location = ?"
+                    PreparedStatement insertStatement = connection.prepareStatement(
+                            "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
                     );
-                    checkStatement.setString(1, location.toString());
-                    ResultSet resultSet = checkStatement.executeQuery();
-
-                    boolean existingEntryWithDifferentMaterial = false;
-                    while (resultSet.next()) {
-                        Material existingMaterial = Material.valueOf(resultSet.getString("material"));
-                        if (existingMaterial != material) {
-                            // Remove the existing entry because material is different
-                            PreparedStatement deleteStatement = connection.prepareStatement(
-                                    "DELETE FROM plant_data WHERE id = ?"
-                            );
-                            deleteStatement.setInt(1, resultSet.getInt("id"));
-                            deleteStatement.executeUpdate();
-                            deleteStatement.close();
-                            if (Main.getInstance().debug) {
-                                Main.getInstance().getLogger().info("Removed entry with different material at location: " + location.toString());
-                            }
-                            existingEntryWithDifferentMaterial = true;
-                        }
-                    }
-
-                    resultSet.close();
-                    checkStatement.close();
-
-                    // Insert new record if there was no existing entry with different material
-                    if (!existingEntryWithDifferentMaterial) {
-                        PreparedStatement insertStatement = connection.prepareStatement(
-                                "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
-                        );
-                        insertStatement.setString(1, location.toString());
-                        insertStatement.setString(2, material.toString());
-                        insertStatement.setInt(3, growthTime);
-                        insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
-                        insertStatement.executeUpdate();
-                        insertStatement.close();
-                        if (Main.getInstance().debug) {
-                            logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
-                        }
+                    insertStatement.setString(1, location.toString());
+                    insertStatement.setString(2, material.toString());
+                    insertStatement.setInt(3, growthTime);
+                    insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
+                    insertStatement.executeUpdate();
+                    insertStatement.close();
+                    if (Main.getInstance().debug){
+                        logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
                 } catch (SQLException e) {
@@ -140,7 +109,7 @@ public class DatabaseManager {
                     deleteStatement.setString(2, material.toString());
                     deleteStatement.executeUpdate();
                     deleteStatement.close();
-                    if (Main.getInstance().debug) {
+                    if (Main.getInstance().debug){
                         logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
@@ -170,7 +139,7 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
-            if (Main.getInstance().debug) {
+            if (Main.getInstance().debug){
                 logger.info("Retrieved " + plants.size() + " plants from database.");
             }
         } catch (SQLException e) {
@@ -191,7 +160,7 @@ public class DatabaseManager {
                     updateStatement.setInt(2, id);
                     updateStatement.executeUpdate();
                     updateStatement.close();
-                    if (Main.getInstance().debug) {
+                    if (Main.getInstance().debug){
                         logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
@@ -200,65 +169,6 @@ public class DatabaseManager {
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
-    }
-
-    public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Material material = null;
-                try {
-                    PreparedStatement statement = connection.prepareStatement(
-                            "SELECT material FROM plant_data WHERE location = ?;"
-                    );
-                    statement.setString(1, location.toString());
-                    ResultSet resultSet = statement.executeQuery();
-                    if (resultSet.next()) {
-                        material = Material.valueOf(resultSet.getString("material"));
-                    }
-                    resultSet.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error fetching material at location.", e);
-                }
-                callback.accept(material);
-            }
-        }.runTaskAsynchronously(Main.getInstance());
-    }
-
-    public void removeAllPlantsAtLocation(final Location location, Runnable callback) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try {
-                    PreparedStatement deleteStatement = connection.prepareStatement(
-                            "DELETE FROM plant_data WHERE location = ?;"
-                    );
-                    deleteStatement.setString(1, location.toString());
-                    deleteStatement.executeUpdate();
-                    deleteStatement.close();
-                    if (Main.getInstance().debug) {
-                        Main.getInstance().getLogger().info("Removed all plants at location: " + location.toString());
-                    }
-                    callback.run(); // Execute the callback after deletion
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error removing plants at location.", e);
-                }
-            }
-        }.runTaskAsynchronously(Main.getInstance());
-    }
-
-    public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
-        PreparedStatement updateStatement = connection.prepareStatement(
-                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
-        );
-        updateStatement.setLong(1, currentTimestamp);
-        updateStatement.setInt(2, growthProgress);
-        updateStatement.setInt(3, location.getBlockX());
-        updateStatement.setInt(4, location.getBlockY());
-        updateStatement.setInt(5, location.getBlockZ());
-        updateStatement.executeUpdate();
-        updateStatement.close();
     }
 
     public void closeConnection() {
@@ -313,18 +223,20 @@ public class DatabaseManager {
                         deleteStatement.setInt(2, idToKeep);
                         deleteStatement.executeUpdate();
                         deleteStatement.close();
+
+                        if (Main.getInstance().debug) {
+                            Main.getInstance().getLogger().info("Removed duplicates for location: " + location);
+                        }
                     }
 
                     resultSet.close();
                     statement.close();
-
                 } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error maintaining database.", e);
+                    logger.log(Level.SEVERE, "Error removing duplicates from database.", e);
                 }
             }
-        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 20 * 60 * 60); // Run every 1 hour
+        }.runTaskAsynchronously(Main.getInstance());
     }
-
     public void VacuumDatabase() {
         new BukkitRunnable() {
             @Override
