@@ -192,15 +192,16 @@ public class DatabaseManager {
                     updateStatement.executeUpdate();
                     updateStatement.close();
                     if (Main.getInstance().debug) {
-                        logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
+                        Main.getInstance().getLogger().info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
                 } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error updating growth progress.", e);
+                    Main.getInstance().getLogger().log(Level.SEVERE, "Error updating growth progress.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
 
     public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
         new BukkitRunnable() {
