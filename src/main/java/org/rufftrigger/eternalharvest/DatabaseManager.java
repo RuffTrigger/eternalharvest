@@ -254,6 +254,20 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
+    public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
+        PreparedStatement updateStatement = connection.prepareStatement(
+                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
+        );
+        updateStatement.setLong(1, currentTimestamp);
+        updateStatement.setInt(2, growthProgress);
+        updateStatement.setInt(3, location.getBlockX());
+        updateStatement.setInt(4, location.getBlockY());
+        updateStatement.setInt(5, location.getBlockZ());
+        updateStatement.executeUpdate();
+        updateStatement.close();
+    }
+
+
     public void removeAllPlantsAtLocation(final Location location, Runnable callback) {
         new BukkitRunnable() {
             @Override
