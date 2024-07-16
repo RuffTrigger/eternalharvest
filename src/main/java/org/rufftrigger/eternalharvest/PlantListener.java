@@ -129,35 +129,25 @@ public class PlantListener implements Listener {
         if (block != null && block.getType() == Material.SWEET_BERRY_BUSH) {
             Location location = block.getLocation();
 
-            // Fetch material from database based on location
-            databaseManager.getMaterialAtLocation(location, material -> {
-                // Ensure material fetched matches sweet berry bush to proceed
-                if (material == Material.SWEET_BERRY_BUSH) {
-                    try {
-                        // Update growth progress to 0%
-                        if (Main.getInstance().debug) {
-                            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " growth progress was updated to 0% at " + location);
-                        }
+            // Fetch ID from database based on location
+            databaseManager.getIdFromLocation(location, id -> {
+                if (id != null) {
+                    // Update growth progress to 0%
+                    updateGrowthProgress(id, 0);
 
-                        // Remove all plants at location first
-                        databaseManager.removeAllPlantsAtLocation(location, () -> {
-                            // After removal is completed, record the planting
-                            databaseManager.recordPlanting(location, material, 0);
-                        });
-
-                    } catch (Exception e) {
-                        // Log the error
-                        Main.getInstance().getLogger().log(Level.SEVERE, "Error updating growth progress in database", e);
-                        // Inform the player of the error
-                        player.sendMessage(ChatColor.RED + "An error occurred while processing your action. Please try again later.");
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info("Updated growth progress for plant with ID=" + id + " to 0% at " + location);
                     }
                 } else {
-                    // Material fetched doesn't match expected material
-                    Main.getInstance().getLogger().warning("Unexpected material fetched from database at location " + location.toString());
-                    // Inform the player of the unexpected material
+                    // Handle case where no ID is found for the location
+                    Main.getInstance().getLogger().warning("No plant data found in database at location " + location.toString());
                     player.sendMessage(ChatColor.RED + "This sweet berry bush is not ready to be harvested yet.");
                 }
             });
         }
+    }
+
+    private void updateGrowthProgress(int id, int growthProgress) {
+        databaseManager.updateGrowthProgress(id, growthProgress);
     }
 }

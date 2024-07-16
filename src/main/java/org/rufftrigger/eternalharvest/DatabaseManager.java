@@ -179,7 +179,7 @@ public class DatabaseManager {
         return plants;
     }
 
-    public synchronized void updateGrowthProgress(int id, int growthProgress) {
+    public void updateGrowthProgress(int id, int growthProgress) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -192,11 +192,11 @@ public class DatabaseManager {
                     updateStatement.executeUpdate();
                     updateStatement.close();
                     if (Main.getInstance().debug) {
-                        logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
+                        Main.getInstance().getLogger().info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
                 } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error updating growth progress.", e);
+                    Main.getInstance().getLogger().log(Level.SEVERE, "Error updating growth progress.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -223,6 +223,33 @@ public class DatabaseManager {
                     logger.log(Level.SEVERE, "Error fetching material at location.", e);
                 }
                 callback.accept(material);
+            }
+        }.runTaskAsynchronously(Main.getInstance());
+    }
+
+    public void getIdFromLocation(Location location, Consumer<Integer> callback) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT id FROM plant_data WHERE location_x = ? AND location_y = ? AND location_z = ?;"
+                    );
+                    statement.setInt(1, location.getBlockX());
+                    statement.setInt(2, location.getBlockY());
+                    statement.setInt(3, location.getBlockZ());
+                    ResultSet resultSet = statement.executeQuery();
+                    if (resultSet.next()) {
+                        int id = resultSet.getInt("id");
+                        callback.accept(id);
+                    } else {
+                        callback.accept(null); // Handle case where no ID is found
+                    }
+                    resultSet.close();
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
