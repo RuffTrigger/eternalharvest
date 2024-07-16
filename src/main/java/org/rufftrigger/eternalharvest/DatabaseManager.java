@@ -202,6 +202,7 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
+
     public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
         new BukkitRunnable() {
             @Override
