@@ -48,8 +48,14 @@ public class PlantListener implements Listener {
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
-
-            databaseManager.recordRemoval(event.getBlock().getLocation(), material);
+            // Provide a callback for when the removal is complete
+            databaseManager.recordRemoval(event.getBlock().getLocation(), material, success -> {
+                if (success) {
+                    Main.getInstance().getLogger().info("Successfully removed record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                } else {
+                    Main.getInstance().getLogger().warning("Failed to remove record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                }
+            });
         } else {
             Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
         }
@@ -96,39 +102,46 @@ public class PlantListener implements Listener {
                         // Reset planting time and growth progress
                         long currentTimestamp = System.currentTimeMillis() / 1000;
                         int growthProgress = 0;
-                        databaseManager.recordRemoval(location, material);
 
-                        // Log and inform player
-                        if (Main.getInstance().debug) {
-                            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " planting time and growth progress reset at " + location);
-                        }
+                        // Remove the existing record first
+                        databaseManager.recordRemoval(location, material, success -> {
+                            if (success) {
+                                // Log and inform player about removal
+                                if (Main.getInstance().debug) {
+                                    Main.getInstance().getLogger().info(material.toString().toLowerCase() + " planting time and growth progress reset at " + location);
+                                }
+
+                                try {
+                                    int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
+
+                                    if (growthTime != -1) {
+                                        // Record the new planting
+                                        databaseManager.recordPlanting(location, material, growthTime);
+
+                                    } else {
+                                        Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + location.toString());
+                                    }
+                                } catch (Exception e) {
+                                    Main.getInstance().getLogger().log(Level.SEVERE, "Error recording planting in database", e);
+
+                                }
+                            } else {
+                                Main.getInstance().getLogger().log(Level.SEVERE, "Error removing existing record from database");
+
+                            }
+                        });
 
                     } catch (Exception e) {
-                        // Log the error
                         Main.getInstance().getLogger().log(Level.SEVERE, "Error resetting plant in database", e);
-                        // Inform the player of the error
-                        player.sendMessage(ChatColor.RED + "An error occurred while processing your action. Please try again later.");
-                    }
 
-                    try {
-
-                        int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
-
-                        if (growthTime != -1) {
-                            databaseManager.recordPlanting(location, material, growthTime);
-                        } else {
-                            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + location.toString());
-                        }
-                    } catch (Exception e) {
-
-                        Main.getInstance().getLogger().log(Level.SEVERE, "Error resetting plant in database", e);
                     }
                 } else {
                     // Material fetched doesn't match expected material
                     Main.getInstance().getLogger().warning("Unexpected material fetched from database at location " + location.toString());
-                }
 
+                }
             });
         }
     }
+
 }

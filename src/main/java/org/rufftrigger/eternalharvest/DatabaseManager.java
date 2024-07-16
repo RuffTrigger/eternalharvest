@@ -3,14 +3,13 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,7 +17,7 @@ import java.util.logging.Logger;
 public class DatabaseManager {
 
     private Connection connection;
-    private Logger logger;
+    private final Logger logger;
 
     public DatabaseManager() {
         this.logger = Main.getInstance().getLogger();
@@ -87,7 +86,7 @@ public class DatabaseManager {
                     insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
                     insertStatement.executeUpdate();
                     insertStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
@@ -98,7 +97,7 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
-    public void recordRemoval(final Location location, final Material material) {
+    public void recordRemoval(final Location location, final Material material, Consumer<Boolean> callback) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -108,14 +107,16 @@ public class DatabaseManager {
                     );
                     deleteStatement.setString(1, location.toString());
                     deleteStatement.setString(2, material.toString());
-                    deleteStatement.executeUpdate();
+                    int rowsAffected = deleteStatement.executeUpdate();
                     deleteStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
                     }
+                    callback.accept(rowsAffected > 0);
 
                 } catch (SQLException e) {
                     logger.log(Level.SEVERE, "Error recording removal.", e);
+                    callback.accept(false);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -132,7 +133,7 @@ public class DatabaseManager {
                     deleteStatement.setString(1, location.toString());
                     deleteStatement.executeUpdate();
                     deleteStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Recorded removal: ALL from Location=" + location.toString());
                     }
 
@@ -162,7 +163,7 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
-            if (Main.getInstance().debug){
+            if (Main.getInstance().debug) {
                 logger.info("Retrieved " + plants.size() + " plants from database.");
             }
         } catch (SQLException e) {
@@ -183,7 +184,7 @@ public class DatabaseManager {
                     updateStatement.setInt(2, id);
                     updateStatement.executeUpdate();
                     updateStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
@@ -193,6 +194,7 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
     public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
         PreparedStatement updateStatement = connection.prepareStatement(
                 "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location = ?;"
@@ -227,6 +229,7 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
     public void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
@@ -293,6 +296,7 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
     public void VacuumDatabase() {
         new BukkitRunnable() {
             @Override
