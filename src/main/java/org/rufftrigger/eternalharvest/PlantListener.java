@@ -1,7 +1,9 @@
 package org.rufftrigger.eternalharvest;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -10,8 +12,10 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.block.Block;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 import java.util.List;
+import java.util.logging.Level;
 
 public class PlantListener implements Listener {
 
@@ -126,18 +130,38 @@ public class PlantListener implements Listener {
         databaseManager.removeAllPlantsAtLocation(burnLocation);
     }
 
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        Block block = event.getClickedBlock();
 
+        if (block != null && block.getType() == Material.SWEET_BERRY_BUSH) {
+            Location location = block.getLocation();
 
-    private void handleBlockExplosion(Block block) {
-        Material material = block.getType();
-        int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
+            // Fetch material from database based on location
+            Material material = databaseManager.getMaterialAtLocation(location);
 
-        if (growthTime != -1) {
-            // Record removal in the database asynchronously
-            databaseManager.recordRemoval(block.getLocation(), material);
-        } else {
-            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + block.getLocation());
-            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT removed from plant_growth.db due to explosion");
+            // Ensure material fetched matches sweet berry bush to proceed
+            if (material == Material.SWEET_BERRY_BUSH) {
+                try {
+                    // Update growth progress to 0%
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info(material.toString().toLowerCase() + " growth progress was updated to 0% at " + location);
+                    }
+                    databaseManager.recordPlanting(location, material, 0);
+
+                } catch (Exception e) {
+                    // Log the error
+                    Main.getInstance().getLogger().log(Level.SEVERE, "Error updating growth progress in database", e);
+                    // Inform the player of the error
+                    player.sendMessage(ChatColor.RED + "An error occurred while processing your action. Please try again later.");
+                }
+            } else {
+                // Material fetched doesn't match expected material
+                Main.getInstance().getLogger().warning("Unexpected material fetched from database at location " + location.toString());
+                // Inform the player of the unexpected material
+                player.sendMessage(ChatColor.RED + "This sweet berry bush is not ready to be harvested yet.");
+            }
         }
     }
 
