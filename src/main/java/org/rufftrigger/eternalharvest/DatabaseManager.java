@@ -3,14 +3,14 @@ package org.rufftrigger.eternalharvest;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
-import org.bukkit.block.data.Ageable;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.IOException;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,6 +22,7 @@ public class DatabaseManager {
     public DatabaseManager() {
         this.logger = Main.getInstance().getLogger();
     }
+
     public void setupDatabase() {
         try {
             File dataFolder = Main.getInstance().getDataFolder();
@@ -57,6 +58,7 @@ public class DatabaseManager {
             logger.log(Level.SEVERE, "Error setting up database.", e);
         }
     }
+
     private void createNewDatabase(File dbFile) throws IOException {
         try {
             if (dbFile.createNewFile()) {
@@ -69,6 +71,7 @@ public class DatabaseManager {
             throw e;
         }
     }
+
     public void recordPlanting(final Location location, final Material material, final int growthTime) {
         new BukkitRunnable() {
             @Override
@@ -113,7 +116,7 @@ public class DatabaseManager {
                         insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
                         insertStatement.executeUpdate();
                         insertStatement.close();
-                        if (Main.getInstance().debug){
+                        if (Main.getInstance().debug) {
                             logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
                         }
                     }
@@ -124,6 +127,7 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
     public void recordRemoval(final Location location, final Material material) {
         new BukkitRunnable() {
             @Override
@@ -136,7 +140,7 @@ public class DatabaseManager {
                     deleteStatement.setString(2, material.toString());
                     deleteStatement.executeUpdate();
                     deleteStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
                     }
 
@@ -146,6 +150,7 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+
     public List<PlantData> getAllPlants() {
         List<PlantData> plants = new ArrayList<>();
         try {
@@ -165,7 +170,7 @@ public class DatabaseManager {
             }
             resultSet.close();
             statement.close();
-            if (Main.getInstance().debug){
+            if (Main.getInstance().debug) {
                 logger.info("Retrieved " + plants.size() + " plants from database.");
             }
         } catch (SQLException e) {
@@ -173,7 +178,8 @@ public class DatabaseManager {
         }
         return plants;
     }
-    public void updateGrowthProgress(int id, int growthProgress) {
+
+    public synchronized void updateGrowthProgress(int id, int growthProgress) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -185,7 +191,7 @@ public class DatabaseManager {
                     updateStatement.setInt(2, id);
                     updateStatement.executeUpdate();
                     updateStatement.close();
-                    if (Main.getInstance().debug){
+                    if (Main.getInstance().debug) {
                         logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
@@ -195,39 +201,53 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-    public Material getMaterialAtLocation(Location location) {
-        Material material = null;
-        try {
-            PreparedStatement statement = connection.prepareStatement(
-                    "SELECT material FROM plant_data WHERE location = ?;"
-            );
-            statement.setString(1, location.toString());
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                material = Material.valueOf(resultSet.getString("material"));
+
+    public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Material material = null;
+                try {
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT material FROM plant_data WHERE location = ?;"
+                    );
+                    statement.setString(1, location.toString());
+                    ResultSet resultSet = statement.executeQuery();
+                    if (resultSet.next()) {
+                        material = Material.valueOf(resultSet.getString("material"));
+                    }
+                    resultSet.close();
+                    statement.close();
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error fetching material at location.", e);
+                }
+                callback.accept(material);
             }
-            resultSet.close();
-            statement.close();
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error fetching material at location.", e);
-        }
-        return material;
+        }.runTaskAsynchronously(Main.getInstance());
     }
-    public void removeAllPlantsAtLocation(Location location) {
-        try {
-            PreparedStatement deleteStatement = connection.prepareStatement(
-                    "DELETE FROM plant_data WHERE location = ?;"
-            );
-            deleteStatement.setString(1, location.toString());
-            deleteStatement.executeUpdate();
-            deleteStatement.close();
-            if (Main.getInstance().debug) {
-                Main.getInstance().getLogger().info("Removed all plants at location: " + location.toString());
+
+    public void removeAllPlantsAtLocation(final Location location, Runnable callback) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement deleteStatement = connection.prepareStatement(
+                            "DELETE FROM plant_data WHERE location = ?;"
+                    );
+                    deleteStatement.setString(1, location.toString());
+                    deleteStatement.executeUpdate();
+                    deleteStatement.close();
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info("Removed all plants at location: " + location.toString());
+                    }
+                    callback.run(); // Execute the callback after deletion
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error removing plants at location.", e);
+                }
             }
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error removing plants at location.", e);
-        }
+        }.runTaskAsynchronously(Main.getInstance());
     }
+
     public void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
@@ -238,6 +258,7 @@ public class DatabaseManager {
             logger.log(Level.SEVERE, "Error closing database connection.", e);
         }
     }
+
     public void maintainDatabase() {
         new BukkitRunnable() {
             @Override
@@ -279,20 +300,18 @@ public class DatabaseManager {
                         deleteStatement.setInt(2, idToKeep);
                         deleteStatement.executeUpdate();
                         deleteStatement.close();
-
-                        if (Main.getInstance().debug) {
-                            Main.getInstance().getLogger().info("Removed duplicates for location: " + location);
-                        }
                     }
 
                     resultSet.close();
                     statement.close();
+
                 } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error removing duplicates from database.", e);
+                    logger.log(Level.SEVERE, "Error maintaining database.", e);
                 }
             }
-        }.runTaskAsynchronously(Main.getInstance());
+        }.runTaskTimerAsynchronously(Main.getInstance(), 0L, 20 * 60 * 60); // Run every 1 hour
     }
+
     public void VacuumDatabase() {
         new BukkitRunnable() {
             @Override
