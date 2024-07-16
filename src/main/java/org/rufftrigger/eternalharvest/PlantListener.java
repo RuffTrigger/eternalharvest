@@ -92,7 +92,7 @@ public class PlantListener implements Listener {
                         // Reset planting time and growth progress
                         long currentTimestamp = System.currentTimeMillis() / 1000;
                         int growthProgress = 0;
-                        databaseManager.recordRemovalByLocation(location);
+                        databaseManager.recordRemoval(location, material);
 
                         // Log and inform player
                         if (Main.getInstance().debug) {
@@ -105,12 +105,25 @@ public class PlantListener implements Listener {
                         // Inform the player of the error
                         player.sendMessage(ChatColor.RED + "An error occurred while processing your action. Please try again later.");
                     }
+
+                    try {
+
+                        int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
+
+                        if (growthTime != -1) {
+                            databaseManager.recordPlanting(location, material, growthTime);
+                        } else {
+                            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + location.toString());
+                        }
+                    } catch (Exception e) {
+
+                        Main.getInstance().getLogger().log(Level.SEVERE, "Error resetting plant in database", e);
+                    }
                 } else {
                     // Material fetched doesn't match expected material
                     Main.getInstance().getLogger().warning("Unexpected material fetched from database at location " + location.toString());
-                    // Inform the player of the unexpected material
-                    player.sendMessage(ChatColor.RED + "This sweet berry bush is not ready to be harvested yet.");
                 }
+
             });
         }
     }
