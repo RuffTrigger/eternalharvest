@@ -22,7 +22,6 @@ public class DatabaseManager {
     public DatabaseManager() {
         this.logger = Main.getInstance().getLogger();
     }
-
     public void setupDatabase() {
         try {
             File dataFolder = Main.getInstance().getDataFolder();
@@ -58,7 +57,6 @@ public class DatabaseManager {
             logger.log(Level.SEVERE, "Error setting up database.", e);
         }
     }
-
     private void createNewDatabase(File dbFile) throws IOException {
         try {
             if (dbFile.createNewFile()) {
@@ -71,7 +69,6 @@ public class DatabaseManager {
             throw e;
         }
     }
-
     public void recordPlanting(final Location location, final Material material, final int growthTime) {
         new BukkitRunnable() {
             @Override
@@ -127,7 +124,6 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-
     public void recordRemoval(final Location location, final Material material) {
         new BukkitRunnable() {
             @Override
@@ -150,7 +146,6 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-
     public List<PlantData> getAllPlants() {
         List<PlantData> plants = new ArrayList<>();
         try {
@@ -178,7 +173,6 @@ public class DatabaseManager {
         }
         return plants;
     }
-
     public void updateGrowthProgress(int id, int growthProgress) {
         new BukkitRunnable() {
             @Override
@@ -201,7 +195,39 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-
+    public Material getMaterialAtLocation(Location location) {
+        Material material = null;
+        try {
+            PreparedStatement statement = connection.prepareStatement(
+                    "SELECT material FROM plant_data WHERE location = ?;"
+            );
+            statement.setString(1, location.toString());
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                material = Material.valueOf(resultSet.getString("material"));
+            }
+            resultSet.close();
+            statement.close();
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Error fetching material at location.", e);
+        }
+        return material;
+    }
+    public void removeAllPlantsAtLocation(Location location) {
+        try {
+            PreparedStatement deleteStatement = connection.prepareStatement(
+                    "DELETE FROM plant_data WHERE location = ?;"
+            );
+            deleteStatement.setString(1, location.toString());
+            deleteStatement.executeUpdate();
+            deleteStatement.close();
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Removed all plants at location: " + location.toString());
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Error removing plants at location.", e);
+        }
+    }
     public void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
@@ -212,7 +238,6 @@ public class DatabaseManager {
             logger.log(Level.SEVERE, "Error closing database connection.", e);
         }
     }
-
     public void maintainDatabase() {
         new BukkitRunnable() {
             @Override
