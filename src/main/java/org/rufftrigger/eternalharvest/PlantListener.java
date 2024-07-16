@@ -33,6 +33,9 @@ public class PlantListener implements Listener {
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Growth time (" + growthTime + " was found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            }
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
         } else {
             Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
@@ -45,6 +48,7 @@ public class PlantListener implements Listener {
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
+
             databaseManager.recordRemoval(event.getBlock().getLocation(), material);
         } else {
             Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
