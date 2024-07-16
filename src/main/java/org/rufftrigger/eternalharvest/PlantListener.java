@@ -64,26 +64,20 @@ public class PlantListener implements Listener {
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent event) {
         for (Block block : event.blockList()) {
-            Location explosionLocation = block.getLocation();
-            databaseManager.recordRemovalByLocation(explosionLocation);
+            handleBlockExplosion(block);
         }
     }
 
     @EventHandler
     public void onBlockExplode(BlockExplodeEvent event) {
         for (Block block : event.blockList()) {
-            Location explosionLocation = block.getLocation();
-            databaseManager.recordRemovalByLocation(explosionLocation);
+            handleBlockExplosion(block);
         }
     }
 
     @EventHandler
     public void onBlockBurn(BlockBurnEvent event) {
-        Location burnLocation = event.getBlock().getLocation();
-        Block block = event.getBlock();
-        if (block.getType() == Material.FIRE) {
-            databaseManager.recordRemovalByLocation(burnLocation);
-        }
+        handleBlockBurn(event.getBlock());
     }
 
     @EventHandler
@@ -144,4 +138,34 @@ public class PlantListener implements Listener {
         }
     }
 
+    private void handleBlockExplosion(Block block) {
+        Material material = block.getType();
+        if (Main.getInstance().debug) {
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed due to explosion at " + block.getLocation());
+        }
+        int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
+
+        if (growthTime != -1) {
+            // Record removal in the database asynchronously
+            databaseManager.recordRemovalByLocation(block.getLocation());
+        } else {
+            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + block.getLocation());
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT removed from plant_growth.db due to explosion");
+        }
+    }
+    private void handleBlockBurn(Block block) {
+        Material material = block.getType();
+        if (Main.getInstance().debug) {
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed due to fire at " + block.getLocation());
+        }
+        int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
+
+        if (growthTime != -1) {
+            // Record removal in the database asynchronously
+            databaseManager.recordRemovalByLocation(block.getLocation());
+        } else {
+            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + block.getLocation());
+            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was NOT removed from plant_growth.db due to fire");
+        }
+    }
 }
