@@ -55,7 +55,7 @@ public class PlantListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent event) {
         for (Block block : event.blockList()) {
             Location explosionLocation = block.getLocation();
-
+            databaseManager.recordRemovalByLocation(explosionLocation);
         }
     }
 
@@ -63,14 +63,17 @@ public class PlantListener implements Listener {
     public void onBlockExplode(BlockExplodeEvent event) {
         for (Block block : event.blockList()) {
             Location explosionLocation = block.getLocation();
-
+            databaseManager.recordRemovalByLocation(explosionLocation);
         }
     }
 
     @EventHandler
     public void onBlockBurn(BlockBurnEvent event) {
         Location burnLocation = event.getBlock().getLocation();
-
+        Block block = event.getBlock();
+        if (block.getType() == Material.FIRE) {
+            databaseManager.recordRemovalByLocation(burnLocation);
+        }
     }
 
     @EventHandler
@@ -89,9 +92,7 @@ public class PlantListener implements Listener {
                         // Reset planting time and growth progress
                         long currentTimestamp = System.currentTimeMillis() / 1000;
                         int growthProgress = 0;
-
-                        // Update database: Reset planting time and growth progress
-                        databaseManager.resetPlantingTimeAndProgress(location, currentTimestamp, growthProgress);
+                        databaseManager.recordRemovalByLocation(location);
 
                         // Log and inform player
                         if (Main.getInstance().debug) {
