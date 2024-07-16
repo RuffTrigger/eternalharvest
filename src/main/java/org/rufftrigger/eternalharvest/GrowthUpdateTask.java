@@ -76,7 +76,15 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                     Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
                                 }
                                 // Remove the tree data from the database
-                                databaseManager.recordRemoval(location, plant.getMaterial());
+                                databaseManager.recordRemoval(location, plant.getMaterial(), success -> {
+                                    if (success) {
+                                        if (Main.getInstance().debug) {
+                                            Main.getInstance().getLogger().info("Successfully removed record for " + plant.getMaterial() + " at " + location.toString());
+                                        }
+                                    } else {
+                                        Main.getInstance().getLogger().warning("Failed to remove record for " + plant.getMaterial() + " at " + location.toString());
+                                    }
+                                });
 
                                 // Random chance for a bee hive to be added
                                 if (Math.random() < Main.getInstance().getBeeHiveChance()) {
@@ -99,7 +107,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                                         Bee bee = (Bee) block.getWorld().spawnEntity(hiveLocation.getLocation().add(0.5, 0, 0.5), EntityType.BEE);
                                                         bee.setHive(hiveLocation.getLocation());
                                                         if (Main.getInstance().debug) {
-                                                            Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bees, spawned at " + hiveLocation.getLocation().toString() + " ");
+                                                            Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bees, spawned at " + hiveLocation.getLocation().toString());
                                                         }
                                                     }
                                                     hivePlaced = true;
@@ -121,7 +129,15 @@ public class GrowthUpdateTask extends BukkitRunnable {
                                     Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
                                 }
                                 // Remove the tree data from the database
-                                databaseManager.recordRemoval(location, plant.getMaterial());
+                                databaseManager.recordRemoval(location, plant.getMaterial(), success -> {
+                                    if (success) {
+                                        if (Main.getInstance().debug) {
+                                            Main.getInstance().getLogger().info("Successfully removed record for " + plant.getMaterial() + " at " + location.toString());
+                                        }
+                                    } else {
+                                        Main.getInstance().getLogger().warning("Failed to remove record for " + plant.getMaterial() + " at " + location.toString());
+                                    }
+                                });
                             }
                         }
                     } else if (block.getBlockData() instanceof Ageable) {
@@ -143,6 +159,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
             }
         });
     }
+
 
 
 
