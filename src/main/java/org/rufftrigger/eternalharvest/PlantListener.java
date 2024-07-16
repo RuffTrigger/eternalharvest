@@ -78,9 +78,6 @@ public class PlantListener implements Listener {
 
     private void handleBlockExplosion(Block block) {
         Material material = block.getType();
-        if (Main.getInstance().debug) {
-            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed due to explosion at " + block.getLocation());
-        }
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
@@ -94,9 +91,6 @@ public class PlantListener implements Listener {
 
     private void handleBlockBurn(Block block) {
         Material material = block.getType();
-        if (Main.getInstance().debug) {
-            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " was removed due to fire at " + block.getLocation());
-        }
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {

@@ -77,17 +77,48 @@ public class DatabaseManager {
             @Override
             public void run() {
                 try {
-                    PreparedStatement insertStatement = connection.prepareStatement(
-                            "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
+                    // Check if there is an existing record with the same location but different material
+                    PreparedStatement checkStatement = connection.prepareStatement(
+                            "SELECT id, material FROM plant_data WHERE location = ?"
                     );
-                    insertStatement.setString(1, location.toString());
-                    insertStatement.setString(2, material.toString());
-                    insertStatement.setInt(3, growthTime);
-                    insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
-                    insertStatement.executeUpdate();
-                    insertStatement.close();
-                    if (Main.getInstance().debug){
-                        logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
+                    checkStatement.setString(1, location.toString());
+                    ResultSet resultSet = checkStatement.executeQuery();
+
+                    boolean existingEntryWithDifferentMaterial = false;
+                    while (resultSet.next()) {
+                        Material existingMaterial = Material.valueOf(resultSet.getString("material"));
+                        if (existingMaterial != material) {
+                            // Remove the existing entry because material is different
+                            PreparedStatement deleteStatement = connection.prepareStatement(
+                                    "DELETE FROM plant_data WHERE id = ?"
+                            );
+                            deleteStatement.setInt(1, resultSet.getInt("id"));
+                            deleteStatement.executeUpdate();
+                            deleteStatement.close();
+                            if (Main.getInstance().debug) {
+                                Main.getInstance().getLogger().info("Removed entry with different material at location: " + location.toString());
+                            }
+                            existingEntryWithDifferentMaterial = true;
+                        }
+                    }
+
+                    resultSet.close();
+                    checkStatement.close();
+
+                    // Insert new record if there was no existing entry with different material
+                    if (!existingEntryWithDifferentMaterial) {
+                        PreparedStatement insertStatement = connection.prepareStatement(
+                                "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
+                        );
+                        insertStatement.setString(1, location.toString());
+                        insertStatement.setString(2, material.toString());
+                        insertStatement.setInt(3, growthTime);
+                        insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
+                        insertStatement.executeUpdate();
+                        insertStatement.close();
+                        if (Main.getInstance().debug){
+                            logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
+                        }
                     }
 
                 } catch (SQLException e) {
