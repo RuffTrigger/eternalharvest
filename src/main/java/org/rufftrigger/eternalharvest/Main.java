@@ -94,6 +94,10 @@ public class Main extends JavaPlugin {
         return maxBeesPerHive;
     }
 
+    public int GetTallMangroveChange () {
+        return tallMangroveChange;
+    }
+
     public static Main getInstance() {
         return instance;
     }

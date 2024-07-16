@@ -164,8 +164,10 @@ public class GrowthUpdateTask extends BukkitRunnable {
                 return TreeType.CHERRY;
             case MANGROVE_PROPAGULE:
                 // Read the tall mangrove change percentage from the config
-                int tallMangroveChange = Main.getInstance().getConfig().getInt("TALL_MANGROVE_CHANGE", 30);
-
+                int tallMangroveChange = Main.getInstance().GetTallMangroveChange();
+                if (Main.getInstance().debug) {
+                    Main.getInstance().getLogger().info("fetching tall Mangrove Change = " + tallMangroveChange);
+                }
                 // Generate a random value between 0 and 99 inclusive
                 Random random = new Random(System.currentTimeMillis());
                 int randomValue = random.nextInt(100);
