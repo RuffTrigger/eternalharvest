@@ -121,6 +121,28 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
+    public void recordRemovalByLocation(final Location location) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement deleteStatement = connection.prepareStatement(
+                            "DELETE FROM plant_data WHERE location = ?;"
+                    );
+                    deleteStatement.setString(1, location.toString());
+                    deleteStatement.executeUpdate();
+                    deleteStatement.close();
+                    if (Main.getInstance().debug){
+                        logger.info("Recorded removal: ALL from Location=" + location.toString());
+                    }
+
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error recording removal.", e);
+                }
+            }
+        }.runTaskAsynchronously(Main.getInstance());
+    }
+
     public List<PlantData> getAllPlants() {
         List<PlantData> plants = new ArrayList<>();
         try {
@@ -173,13 +195,11 @@ public class DatabaseManager {
     }
     public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
         PreparedStatement updateStatement = connection.prepareStatement(
-                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
+                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location = ?;"
         );
         updateStatement.setLong(1, currentTimestamp);
         updateStatement.setInt(2, growthProgress);
-        updateStatement.setInt(3, location.getBlockX());
-        updateStatement.setInt(4, location.getBlockY());
-        updateStatement.setInt(5, location.getBlockZ());
+        updateStatement.setString(3, location.toString());
         updateStatement.executeUpdate();
         updateStatement.close();
     }
