@@ -78,6 +78,39 @@ public class PlantListener implements Listener {
         Player player = event.getPlayer();
         Block block = event.getClickedBlock();
 
+        if (block != null && block.getType() == Material.SWEET_BERRY_BUSH) {
+            Location location = block.getLocation();
 
+            // Fetch material from database based on location
+            databaseManager.getMaterialAtLocation(location, material -> {
+                // Ensure material fetched matches sweet berry bush to proceed
+                if (material == Material.SWEET_BERRY_BUSH) {
+                    try {
+                        // Reset planting time and growth progress
+                        long currentTimestamp = System.currentTimeMillis() / 1000;
+                        int growthProgress = 0;
+
+                        // Update database: Reset planting time and growth progress
+                        databaseManager.resetPlantingTimeAndProgress(location, currentTimestamp, growthProgress);
+
+                        // Log and inform player
+                        if (Main.getInstance().debug) {
+                            Main.getInstance().getLogger().info(material.toString().toLowerCase() + " planting time and growth progress reset at " + location);
+                        }
+
+                    } catch (Exception e) {
+                        // Log the error
+                        Main.getInstance().getLogger().log(Level.SEVERE, "Error resetting plant in database", e);
+                        // Inform the player of the error
+                        player.sendMessage(ChatColor.RED + "An error occurred while processing your action. Please try again later.");
+                    }
+                } else {
+                    // Material fetched doesn't match expected material
+                    Main.getInstance().getLogger().warning("Unexpected material fetched from database at location " + location.toString());
+                    // Inform the player of the unexpected material
+                    player.sendMessage(ChatColor.RED + "This sweet berry bush is not ready to be harvested yet.");
+                }
+            });
+        }
     }
 }

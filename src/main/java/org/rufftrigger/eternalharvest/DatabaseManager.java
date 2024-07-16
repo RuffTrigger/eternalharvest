@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -170,7 +171,42 @@ public class DatabaseManager {
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
+    public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
+        PreparedStatement updateStatement = connection.prepareStatement(
+                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
+        );
+        updateStatement.setLong(1, currentTimestamp);
+        updateStatement.setInt(2, growthProgress);
+        updateStatement.setInt(3, location.getBlockX());
+        updateStatement.setInt(4, location.getBlockY());
+        updateStatement.setInt(5, location.getBlockZ());
+        updateStatement.executeUpdate();
+        updateStatement.close();
+    }
 
+    public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                Material material = null;
+                try {
+                    PreparedStatement statement = connection.prepareStatement(
+                            "SELECT material FROM plant_data WHERE location = ?;"
+                    );
+                    statement.setString(1, location.toString());
+                    ResultSet resultSet = statement.executeQuery();
+                    if (resultSet.next()) {
+                        material = Material.valueOf(resultSet.getString("material"));
+                    }
+                    resultSet.close();
+                    statement.close();
+                } catch (SQLException e) {
+                    logger.log(Level.SEVERE, "Error fetching material at location.", e);
+                }
+                callback.accept(material);
+            }
+        }.runTaskAsynchronously(Main.getInstance());
+    }
     public void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
