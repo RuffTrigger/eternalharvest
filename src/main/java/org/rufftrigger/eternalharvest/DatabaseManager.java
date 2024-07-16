@@ -192,16 +192,15 @@ public class DatabaseManager {
                     updateStatement.executeUpdate();
                     updateStatement.close();
                     if (Main.getInstance().debug) {
-                        Main.getInstance().getLogger().info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
+                        logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
                     }
 
                 } catch (SQLException e) {
-                    Main.getInstance().getLogger().log(Level.SEVERE, "Error updating growth progress.", e);
+                    logger.log(Level.SEVERE, "Error updating growth progress.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
-
 
     public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
         new BukkitRunnable() {
@@ -227,47 +226,6 @@ public class DatabaseManager {
         }.runTaskAsynchronously(Main.getInstance());
     }
 
-    public void getIdFromLocation(Location location, Consumer<Integer> callback) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                try {
-                    PreparedStatement statement = connection.prepareStatement(
-                            "SELECT id FROM plant_data WHERE location_x = ? AND location_y = ? AND location_z = ?;"
-                    );
-                    statement.setInt(1, location.getBlockX());
-                    statement.setInt(2, location.getBlockY());
-                    statement.setInt(3, location.getBlockZ());
-                    ResultSet resultSet = statement.executeQuery();
-                    if (resultSet.next()) {
-                        int id = resultSet.getInt("id");
-                        callback.accept(id);
-                    } else {
-                        callback.accept(null); // Handle case where no ID is found
-                    }
-                    resultSet.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }.runTaskAsynchronously(Main.getInstance());
-    }
-
-    public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
-        PreparedStatement updateStatement = connection.prepareStatement(
-                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
-        );
-        updateStatement.setLong(1, currentTimestamp);
-        updateStatement.setInt(2, growthProgress);
-        updateStatement.setInt(3, location.getBlockX());
-        updateStatement.setInt(4, location.getBlockY());
-        updateStatement.setInt(5, location.getBlockZ());
-        updateStatement.executeUpdate();
-        updateStatement.close();
-    }
-
-
     public void removeAllPlantsAtLocation(final Location location, Runnable callback) {
         new BukkitRunnable() {
             @Override
@@ -288,6 +246,19 @@ public class DatabaseManager {
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
+    }
+
+    public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
+        PreparedStatement updateStatement = connection.prepareStatement(
+                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location_x = ? AND location_y = ? AND location_z = ?;"
+        );
+        updateStatement.setLong(1, currentTimestamp);
+        updateStatement.setInt(2, growthProgress);
+        updateStatement.setInt(3, location.getBlockX());
+        updateStatement.setInt(4, location.getBlockY());
+        updateStatement.setInt(5, location.getBlockZ());
+        updateStatement.executeUpdate();
+        updateStatement.close();
     }
 
     public void closeConnection() {
