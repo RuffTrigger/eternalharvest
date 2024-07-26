@@ -38,7 +38,9 @@ public class PlantListener implements Listener {
             }
             databaseManager.recordPlanting(event.getBlock().getLocation(), material, growthTime);
         } else {
-            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            }
         }
     }
 
@@ -51,13 +53,17 @@ public class PlantListener implements Listener {
             // Provide a callback for when the removal is complete
             databaseManager.recordRemoval(event.getBlock().getLocation(), material, success -> {
                 if (success) {
+                    if (Main.getInstance().debug) {
                     Main.getInstance().getLogger().info("Successfully removed record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                    }
                 } else {
                     Main.getInstance().getLogger().warning("Failed to remove record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
                 }
             });
         } else {
-            Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            if (Main.getInstance().debug) {
+                Main.getInstance().getLogger().info("Growth time was not found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+            }
         }
     }
 
