@@ -13,6 +13,6 @@ public class VacuumDatabaseScheduler extends BukkitRunnable {
     @Override
     public void run() {
         // Implement your database vacuuming logic here
-        databaseManager.VacuumDatabase();
+        databaseManager.vacuumDatabase();
     }
 }

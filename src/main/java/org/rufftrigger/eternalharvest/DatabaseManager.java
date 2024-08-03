@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +19,8 @@ public class DatabaseManager {
 
     private Connection connection;
     private final Logger logger;
+    private final Object dbLock = new Object();
+    private final AtomicInteger activeStatements = new AtomicInteger(0);
 
     public DatabaseManager() {
         this.logger = Main.getInstance().getLogger();
@@ -76,22 +79,26 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    PreparedStatement insertStatement = connection.prepareStatement(
-                            "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
-                    );
-                    insertStatement.setString(1, location.toString());
-                    insertStatement.setString(2, material.toString());
-                    insertStatement.setInt(3, growthTime);
-                    insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
-                    insertStatement.executeUpdate();
-                    insertStatement.close();
-                    if (Main.getInstance().debug) {
-                        logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
+                activeStatements.incrementAndGet();
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement insertStatement = connection.prepareStatement(
+                                "INSERT INTO plant_data (location, material, growth_time, plant_timestamp) VALUES (?, ?, ?, ?);"
+                        );
+                        insertStatement.setString(1, location.toString());
+                        insertStatement.setString(2, material.toString());
+                        insertStatement.setInt(3, growthTime);
+                        insertStatement.setLong(4, System.currentTimeMillis() / 1000); // Store current time in seconds
+                        insertStatement.executeUpdate();
+                        insertStatement.close();
+                        if (Main.getInstance().debug) {
+                            logger.info("Recorded planting: Material=" + material.toString() + ", Location=" + location.toString());
+                        }
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error recording planting.", e);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error recording planting.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -101,22 +108,26 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    PreparedStatement deleteStatement = connection.prepareStatement(
-                            "DELETE FROM plant_data WHERE location = ? AND material = ?;"
-                    );
-                    deleteStatement.setString(1, location.toString());
-                    deleteStatement.setString(2, material.toString());
-                    int rowsAffected = deleteStatement.executeUpdate();
-                    deleteStatement.close();
-                    if (Main.getInstance().debug) {
-                        logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
+                activeStatements.incrementAndGet();
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement deleteStatement = connection.prepareStatement(
+                                "DELETE FROM plant_data WHERE location = ? AND material = ?;"
+                        );
+                        deleteStatement.setString(1, location.toString());
+                        deleteStatement.setString(2, material.toString());
+                        int rowsAffected = deleteStatement.executeUpdate();
+                        deleteStatement.close();
+                        if (Main.getInstance().debug) {
+                            logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
+                        }
+                        callback.accept(rowsAffected > 0);
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error recording removal.", e);
+                        callback.accept(false);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-                    callback.accept(rowsAffected > 0);
-
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error recording removal.", e);
-                    callback.accept(false);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -126,19 +137,23 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    PreparedStatement deleteStatement = connection.prepareStatement(
-                            "DELETE FROM plant_data WHERE location = ?;"
-                    );
-                    deleteStatement.setString(1, location.toString());
-                    deleteStatement.executeUpdate();
-                    deleteStatement.close();
-                    if (Main.getInstance().debug) {
-                        logger.info("Recorded removal: ALL from Location=" + location.toString());
+                activeStatements.incrementAndGet();
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement deleteStatement = connection.prepareStatement(
+                                "DELETE FROM plant_data WHERE location = ?;"
+                        );
+                        deleteStatement.setString(1, location.toString());
+                        deleteStatement.executeUpdate();
+                        deleteStatement.close();
+                        if (Main.getInstance().debug) {
+                            logger.info("Recorded removal: ALL from Location=" + location.toString());
+                        }
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error recording removal.", e);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error recording removal.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
@@ -146,28 +161,33 @@ public class DatabaseManager {
 
     public List<PlantData> getAllPlants() {
         List<PlantData> plants = new ArrayList<>();
-        try {
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM plant_data;");
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                PlantData plant = new PlantData(
-                        resultSet.getInt("id"),
-                        resultSet.getString("location"),
-                        Material.valueOf(resultSet.getString("material")),
-                        resultSet.getInt("growth_time"),
-                        resultSet.getLong("plant_timestamp"),
-                        resultSet.getInt("growth_progress"),
-                        resultSet.getTimestamp("last_updated").getTime()
-                );
-                plants.add(plant);
+        synchronized (dbLock) {
+            activeStatements.incrementAndGet();
+            try {
+                PreparedStatement statement = connection.prepareStatement("SELECT * FROM plant_data;");
+                ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    PlantData plant = new PlantData(
+                            resultSet.getInt("id"),
+                            resultSet.getString("location"),
+                            Material.valueOf(resultSet.getString("material")),
+                            resultSet.getInt("growth_time"),
+                            resultSet.getLong("plant_timestamp"),
+                            resultSet.getInt("growth_progress"),
+                            resultSet.getTimestamp("last_updated").getTime()
+                    );
+                    plants.add(plant);
+                }
+                resultSet.close();
+                statement.close();
+                if (Main.getInstance().debug) {
+                    logger.info("Retrieved " + plants.size() + " plants from database.");
+                }
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Error retrieving plants from database.", e);
+            } finally {
+                activeStatements.decrementAndGet();
             }
-            resultSet.close();
-            statement.close();
-            if (Main.getInstance().debug) {
-                logger.info("Retrieved " + plants.size() + " plants from database.");
-            }
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error retrieving plants from database.", e);
         }
         return plants;
     }
@@ -176,68 +196,86 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    PreparedStatement updateStatement = connection.prepareStatement(
-                            "UPDATE plant_data SET growth_progress = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?;"
-                    );
-                    updateStatement.setInt(1, growthProgress);
-                    updateStatement.setInt(2, id);
-                    updateStatement.executeUpdate();
-                    updateStatement.close();
-                    if (Main.getInstance().debug) {
-                        logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
+                activeStatements.incrementAndGet();
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement updateStatement = connection.prepareStatement(
+                                "UPDATE plant_data SET growth_progress = ?, last_updated = CURRENT_TIMESTAMP WHERE id = ?;"
+                        );
+                        updateStatement.setInt(1, growthProgress);
+                        updateStatement.setInt(2, id);
+                        updateStatement.executeUpdate();
+                        updateStatement.close();
+                        if (Main.getInstance().debug) {
+                            logger.info("Updated growth progress for plant with ID=" + id + " to " + growthProgress + "%.");
+                        }
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error updating growth progress.", e);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error updating growth progress.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
 
     public void resetPlantingTimeAndProgress(Location location, long currentTimestamp, int growthProgress) throws SQLException {
-        PreparedStatement updateStatement = connection.prepareStatement(
-                "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location = ?;"
-        );
-        updateStatement.setLong(1, currentTimestamp);
-        updateStatement.setInt(2, growthProgress);
-        updateStatement.setString(3, location.toString());
-        updateStatement.executeUpdate();
-        updateStatement.close();
+        synchronized (dbLock) {
+            activeStatements.incrementAndGet();
+            try {
+                PreparedStatement updateStatement = connection.prepareStatement(
+                        "UPDATE plant_data SET plant_timestamp = ?, growth_progress = ? WHERE location = ?;"
+                );
+                updateStatement.setLong(1, currentTimestamp);
+                updateStatement.setInt(2, growthProgress);
+                updateStatement.setString(3, location.toString());
+                updateStatement.executeUpdate();
+                updateStatement.close();
+            } finally {
+                activeStatements.decrementAndGet();
+            }
+        }
     }
 
     public void getMaterialAtLocation(final Location location, Consumer<Material> callback) {
         new BukkitRunnable() {
             @Override
             public void run() {
+                activeStatements.incrementAndGet();
                 Material material = null;
-                try {
-                    PreparedStatement statement = connection.prepareStatement(
-                            "SELECT material FROM plant_data WHERE location = ?;"
-                    );
-                    statement.setString(1, location.toString());
-                    ResultSet resultSet = statement.executeQuery();
-                    if (resultSet.next()) {
-                        material = Material.valueOf(resultSet.getString("material"));
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement statement = connection.prepareStatement(
+                                "SELECT material FROM plant_data WHERE location = ?;"
+                        );
+                        statement.setString(1, location.toString());
+                        ResultSet resultSet = statement.executeQuery();
+                        if (resultSet.next()) {
+                            material = Material.valueOf(resultSet.getString("material"));
+                        }
+                        resultSet.close();
+                        statement.close();
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error fetching material at location.", e);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-                    resultSet.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error fetching material at location.", e);
+                    callback.accept(material);
                 }
-                callback.accept(material);
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
 
     public void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                logger.info("Database connection closed.");
+        synchronized (dbLock) {
+            try {
+                if (connection != null && !connection.isClosed()) {
+                    connection.close();
+                    logger.info("Database connection closed.");
+                }
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Error closing database connection.", e);
             }
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Error closing database connection.", e);
         }
     }
 
@@ -245,69 +283,83 @@ public class DatabaseManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    // Query to find duplicates based on location
-                    String query = "SELECT id, location FROM plant_data " +
-                            "GROUP BY location " +
-                            "HAVING COUNT(*) > 1";
+                activeStatements.incrementAndGet();
+                synchronized (dbLock) {
+                    try {
+                        // Query to find duplicates based on location
+                        String query = "SELECT id, location FROM plant_data " +
+                                "GROUP BY location " +
+                                "HAVING COUNT(*) > 1";
 
-                    PreparedStatement statement = connection.prepareStatement(query);
-                    ResultSet resultSet = statement.executeQuery();
+                        PreparedStatement statement = connection.prepareStatement(query);
+                        ResultSet resultSet = statement.executeQuery();
 
-                    while (resultSet.next()) {
-                        String location = resultSet.getString("location");
-                        int idToKeep = -1;
-                        long latestTimestamp = Long.MIN_VALUE;
+                        while (resultSet.next()) {
+                            String location = resultSet.getString("location");
+                            int idToKeep = -1;
+                            long latestTimestamp = Long.MIN_VALUE;
 
-                        // Find the latest entry among duplicates
-                        PreparedStatement findDuplicatesStatement = connection.prepareStatement(
-                                "SELECT id, plant_timestamp FROM plant_data WHERE location = ? ORDER BY plant_timestamp DESC LIMIT 1"
-                        );
-                        findDuplicatesStatement.setString(1, location);
-                        ResultSet duplicatesResultSet = findDuplicatesStatement.executeQuery();
+                            // Find the latest entry among duplicates
+                            PreparedStatement findDuplicatesStatement = connection.prepareStatement(
+                                    "SELECT id, plant_timestamp FROM plant_data WHERE location = ? ORDER BY plant_timestamp DESC LIMIT 1"
+                            );
+                            findDuplicatesStatement.setString(1, location);
+                            ResultSet duplicatesResultSet = findDuplicatesStatement.executeQuery();
 
-                        if (duplicatesResultSet.next()) {
-                            idToKeep = duplicatesResultSet.getInt("id");
-                            latestTimestamp = duplicatesResultSet.getLong("plant_timestamp");
+                            if (duplicatesResultSet.next()) {
+                                idToKeep = duplicatesResultSet.getInt("id");
+                                latestTimestamp = duplicatesResultSet.getLong("plant_timestamp");
+                            }
+
+                            duplicatesResultSet.close();
+                            findDuplicatesStatement.close();
+
+                            // Delete all except the latest entry
+                            PreparedStatement deleteStatement = connection.prepareStatement(
+                                    "DELETE FROM plant_data WHERE location = ? AND id != ?"
+                            );
+                            deleteStatement.setString(1, location);
+                            deleteStatement.setInt(2, idToKeep);
+                            deleteStatement.executeUpdate();
+                            deleteStatement.close();
+
+                            if (Main.getInstance().debug) {
+                                Main.getInstance().getLogger().info("Removed duplicates for location: " + location);
+                            }
                         }
 
-                        duplicatesResultSet.close();
-                        findDuplicatesStatement.close();
-
-                        // Delete all except the latest entry
-                        PreparedStatement deleteStatement = connection.prepareStatement(
-                                "DELETE FROM plant_data WHERE location = ? AND id != ?"
-                        );
-                        deleteStatement.setString(1, location);
-                        deleteStatement.setInt(2, idToKeep);
-                        deleteStatement.executeUpdate();
-                        deleteStatement.close();
-
-                        if (Main.getInstance().debug) {
-                            Main.getInstance().getLogger().info("Removed duplicates for location: " + location);
-                        }
+                        resultSet.close();
+                        statement.close();
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error removing duplicates from database.", e);
+                    } finally {
+                        activeStatements.decrementAndGet();
                     }
-
-                    resultSet.close();
-                    statement.close();
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error removing duplicates from database.", e);
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
     }
 
-    public void VacuumDatabase() {
+    public void vacuumDatabase() {
         new BukkitRunnable() {
             @Override
             public void run() {
-                try {
-                    PreparedStatement vacuumStatement = connection.prepareStatement("VACUUM;");
-                    vacuumStatement.executeUpdate();
-                    vacuumStatement.close();
-                    logger.info("Database vacuumed to reduce file size.");
-                } catch (SQLException e) {
-                    logger.log(Level.SEVERE, "Error vacuuming database.", e);
+                while (activeStatements.get() > 0) {
+                    try {
+                        Thread.sleep(100);  // Wait for 100 milliseconds before checking again
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                synchronized (dbLock) {
+                    try {
+                        PreparedStatement vacuumStatement = connection.prepareStatement("VACUUM;");
+                        vacuumStatement.executeUpdate();
+                        vacuumStatement.close();
+                        logger.info("Database vacuumed to reduce file size.");
+                    } catch (SQLException e) {
+                        logger.log(Level.SEVERE, "Error vacuuming database.", e);
+                    }
                 }
             }
         }.runTaskAsynchronously(Main.getInstance());
