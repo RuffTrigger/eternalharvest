@@ -111,17 +111,39 @@ public class DatabaseManager {
                 activeStatements.incrementAndGet();
                 synchronized (dbLock) {
                     try {
-                        PreparedStatement deleteStatement = connection.prepareStatement(
-                                "DELETE FROM plant_data WHERE location = ? AND material = ?;"
+                        // Check if a record exists at the specified location and material
+                        PreparedStatement checkStatement = connection.prepareStatement(
+                                "SELECT COUNT(*) FROM plant_data WHERE location = ? AND material = ?;"
                         );
-                        deleteStatement.setString(1, location.toString());
-                        deleteStatement.setString(2, material.toString());
-                        int rowsAffected = deleteStatement.executeUpdate();
-                        deleteStatement.close();
-                        if (Main.getInstance().debug) {
-                            logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
+                        checkStatement.setString(1, location.toString());
+                        checkStatement.setString(2, material.toString());
+                        ResultSet resultSet = checkStatement.executeQuery();
+                        resultSet.next();
+                        int count = resultSet.getInt(1);
+                        resultSet.close();
+                        checkStatement.close();
+
+                        if (count > 0) {
+                            // Record exists, proceed with deletion
+                            PreparedStatement deleteStatement = connection.prepareStatement(
+                                    "DELETE FROM plant_data WHERE location = ? AND material = ?;"
+                            );
+                            deleteStatement.setString(1, location.toString());
+                            deleteStatement.setString(2, material.toString());
+                            int rowsAffected = deleteStatement.executeUpdate();
+                            deleteStatement.close();
+
+                            if (Main.getInstance().debug) {
+                                logger.info("Recorded removal: Material=" + material.toString() + ", Location=" + location.toString());
+                            }
+                            callback.accept(rowsAffected > 0);
+                        } else {
+                            // No record exists, return false
+                            if (Main.getInstance().debug) {
+                                logger.info("No record found for removal: Material=" + material.toString() + ", Location=" + location.toString());
+                            }
+                            callback.accept(false);
                         }
-                        callback.accept(rowsAffected > 0);
                     } catch (SQLException e) {
                         logger.log(Level.SEVERE, "Error recording removal.", e);
                         callback.accept(false);
@@ -140,17 +162,37 @@ public class DatabaseManager {
                 activeStatements.incrementAndGet();
                 synchronized (dbLock) {
                     try {
-                        PreparedStatement deleteStatement = connection.prepareStatement(
-                                "DELETE FROM plant_data WHERE location = ?;"
+                        // Check if any record exists at the specified location
+                        PreparedStatement checkStatement = connection.prepareStatement(
+                                "SELECT COUNT(*) FROM plant_data WHERE location = ?;"
                         );
-                        deleteStatement.setString(1, location.toString());
-                        deleteStatement.executeUpdate();
-                        deleteStatement.close();
-                        if (Main.getInstance().debug) {
-                            logger.info("Recorded removal: ALL from Location=" + location.toString());
+                        checkStatement.setString(1, location.toString());
+                        ResultSet resultSet = checkStatement.executeQuery();
+                        resultSet.next();
+                        int count = resultSet.getInt(1);
+                        resultSet.close();
+                        checkStatement.close();
+
+                        if (count > 0) {
+                            // Record exists, proceed with deletion
+                            PreparedStatement deleteStatement = connection.prepareStatement(
+                                    "DELETE FROM plant_data WHERE location = ?;"
+                            );
+                            deleteStatement.setString(1, location.toString());
+                            deleteStatement.executeUpdate();
+                            deleteStatement.close();
+
+                            if (Main.getInstance().debug) {
+                                logger.info("Recorded removal: ALL from Location=" + location.toString());
+                            }
+                        } else {
+                            // No record exists, log it if debugging
+                            if (Main.getInstance().debug) {
+                                logger.info("No records found for removal at Location=" + location.toString());
+                            }
                         }
                     } catch (SQLException e) {
-                        logger.log(Level.SEVERE, "Error recording removal.", e);
+                        logger.log(Level.SEVERE, "Error recording removal by location.", e);
                     } finally {
                         activeStatements.decrementAndGet();
                     }
