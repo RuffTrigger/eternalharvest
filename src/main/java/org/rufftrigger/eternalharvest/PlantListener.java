@@ -50,14 +50,23 @@ public class PlantListener implements Listener {
         int growthTime = Main.getInstance().getConfig().getInt("growth-times." + material.toString().toLowerCase(), -1);
 
         if (growthTime != -1) {
-            // Provide a callback for when the removal is complete
-            databaseManager.recordRemoval(event.getBlock().getLocation(), material, success -> {
-                if (success) {
-                    if (Main.getInstance().debug) {
-                    Main.getInstance().getLogger().info("Successfully removed record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
-                    }
+            // First, check if a record exists for the block at the given location
+            databaseManager.getMaterialAtLocation(event.getBlock().getLocation(), existingMaterial -> {
+                if (existingMaterial != null && existingMaterial == material) {
+                    // Proceed to remove the record if it exists
+                    databaseManager.recordRemoval(event.getBlock().getLocation(), material, success -> {
+                        if (success) {
+                            if (Main.getInstance().debug) {
+                                Main.getInstance().getLogger().info("Successfully removed record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                            }
+                        } else {
+                            Main.getInstance().getLogger().warning("Failed to remove record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                        }
+                    });
                 } else {
-                    Main.getInstance().getLogger().warning("Failed to remove record for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                    if (Main.getInstance().debug) {
+                        Main.getInstance().getLogger().info("No record found for " + material.toString().toLowerCase() + " at " + event.getBlock().getLocation());
+                    }
                 }
             });
         } else {
@@ -66,6 +75,7 @@ public class PlantListener implements Listener {
             }
         }
     }
+
 
     @EventHandler
     public void onEntityExplode(EntityExplodeEvent event) {
