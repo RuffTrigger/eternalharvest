@@ -52,6 +52,7 @@ public class Main extends JavaPlugin {
         new VacuumDatabaseScheduler(databaseManager).runTaskTimerAsynchronously(this, 0, vacuumInterval * 20); // Convert seconds to ticks
         logger.info("VacuumDatabaseScheduler started with interval " + vacuumInterval + " seconds.");
 
+        logger.info("Plugin enabled.");
     }
 
     @Override
