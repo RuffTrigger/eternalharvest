@@ -1,6 +1,11 @@
 package org.rufftrigger.eternalharvest;
 
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Tag;
+import org.bukkit.TreeType;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.Ageable;
@@ -8,160 +13,189 @@ import org.bukkit.entity.Bee;
 import org.bukkit.entity.EntityType;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class GrowthUpdateTask extends BukkitRunnable {
 
     private final DatabaseManager databaseManager;
+    private final Main plugin;
 
     public GrowthUpdateTask(DatabaseManager databaseManager) {
         this.databaseManager = databaseManager;
+        this.plugin = Main.getInstance();
     }
 
     @Override
     public void run() {
-        // Fetch all plant data from the database
         List<PlantData> plants = databaseManager.getAllPlants();
+        if (plants.isEmpty()) {
+            return;
+        }
 
-        // Calculate current time in seconds
         long currentTimeSeconds = System.currentTimeMillis() / 1000;
+        Map<Integer, Integer> progressUpdates = new HashMap<>();
+        List<GrowthUpdate> worldUpdates = new ArrayList<>(plants.size());
 
-        // Update growth for each plant
         for (PlantData plant : plants) {
-            long plantTimeSeconds = plant.getPlantTimestamp();
             int growthTime = plant.getGrowthTime();
+            if (growthTime <= 0) {
+                continue;
+            }
 
-            // Calculate elapsed time since planting in seconds
-            long elapsedTimeSeconds = currentTimeSeconds - plantTimeSeconds;
+            long elapsedTimeSeconds = Math.max(0, currentTimeSeconds - plant.getPlantTimestamp());
+            int growthProgress = elapsedTimeSeconds >= growthTime
+                    ? 100
+                    : (int) ((elapsedTimeSeconds * 100) / growthTime);
 
-            // Calculate growth progress
-            int growthProgress = (int) ((double) elapsedTimeSeconds / growthTime * 100);
+            if (growthProgress != plant.getGrowthProgress()) {
+                progressUpdates.put(plant.getId(), growthProgress);
+            }
+            worldUpdates.add(new GrowthUpdate(plant, growthProgress));
+        }
 
-            // Ensure growthProgress does not exceed 100%
-            growthProgress = Math.min(growthProgress, 100);
+        databaseManager.updateGrowthProgressBatch(progressUpdates);
 
-            // Update growth progress in the database
-            databaseManager.updateGrowthProgress(plant.getId(), growthProgress);
+        if (!worldUpdates.isEmpty()) {
+            Bukkit.getScheduler().runTask(plugin, () -> applyGrowthToWorld(worldUpdates));
+        }
+    }
 
-            // Apply growth progress in the game world
-            applyGrowthToWorld(plant, growthProgress);
+    private void applyGrowthToWorld(List<GrowthUpdate> updates) {
+        for (GrowthUpdate update : updates) {
+            applyGrowthToWorld(update.plant, update.growthProgress);
         }
     }
 
     private void applyGrowthToWorld(PlantData plant, int growthProgress) {
-        Bukkit.getScheduler().runTask(Main.getInstance(), () -> {
-            // Parse the location from the stored string
-            Location location = LocationUtil.fromString(plant.getLocation());
+        Location location = LocationUtil.fromString(plant.getLocation());
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
 
-            if (location != null) {
-                Chunk chunk = location.getChunk();
-                boolean wasLoaded = chunk.isLoaded();
+        World world = location.getWorld();
+        int chunkX = location.getBlockX() >> 4;
+        int chunkZ = location.getBlockZ() >> 4;
+        if (!world.isChunkLoaded(chunkX, chunkZ)) {
+            return;
+        }
 
-                if (!wasLoaded) {
-                    chunk.load();
+        Block block = world.getBlockAt(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        if (block.getType() != plant.getMaterial()) {
+            return;
+        }
+
+        if (isSaplingLike(plant.getMaterial())) {
+            if (growthProgress >= 100) {
+                growSapling(location, block, plant);
+            }
+        } else if (block.getBlockData() instanceof Ageable ageable) {
+            updateAgeableBlock(location, block, ageable, growthProgress);
+        }
+    }
+
+    private void growSapling(Location location, Block block, PlantData plant) {
+        block.setType(Material.AIR);
+        TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
+        boolean treeGenerated = location.getWorld().generateTree(location, treeType);
+
+        if (treeGenerated) {
+            if (plugin.debug) {
+                plugin.getLogger().info("The sapling at " + location + " has grown into a " + treeType.name() + " tree!");
+            }
+            maybePlaceBeeHive(location);
+        } else if (plugin.debug) {
+            plugin.getLogger().warning("Failed to grow tree at " + location);
+        }
+
+        removePlantRecord(location, plant.getMaterial());
+    }
+
+    private void updateAgeableBlock(Location location, Block block, Ageable ageable, int growthProgress) {
+        int maxAge = ageable.getMaximumAge();
+        int newAge = (int) ((growthProgress / 100.0) * maxAge);
+
+        if (ageable.getAge() == newAge) {
+            return;
+        }
+
+        ageable.setAge(newAge);
+        block.setBlockData(ageable);
+
+        if (plugin.debug) {
+            plugin.getLogger().info("Updated Ageable block at " + location + " to growth progress " + growthProgress + "%.");
+        }
+    }
+
+    private void removePlantRecord(Location location, Material material) {
+        databaseManager.recordRemoval(location, material, success -> {
+            if (success) {
+                if (plugin.debug) {
+                    plugin.getLogger().info("Successfully removed record for " + material + " at " + location);
                 }
-
-                Block block = location.getBlock();
-
-                if (block.getType() == plant.getMaterial()) {
-                    if (block.getType().name().endsWith("_SAPLING") || (block.getType().name().startsWith("MANGROVE") && block.getType().name().endsWith("_PROPAGULE"))) {
-                        // Handle sapling growth to tree
-                        if (growthProgress >= 100) {
-                            block.setType(Material.AIR); // Remove sapling
-                            TreeType treeType = getTreeTypeFromMaterial(plant.getMaterial());
-                            boolean treeGenerated = location.getWorld().generateTree(location, treeType);
-                            if (treeGenerated) {
-                                if (Main.getInstance().debug) {
-                                    Main.getInstance().getLogger().info("The sapling at " + location.toString() + " has grown into a " + treeType.name() + " tree!");
-                                }
-                                // Remove the tree data from the database
-                                databaseManager.recordRemoval(location, plant.getMaterial(), success -> {
-                                    if (success) {
-                                        if (Main.getInstance().debug) {
-                                            Main.getInstance().getLogger().info("Successfully removed record for " + plant.getMaterial() + " at " + location.toString());
-                                        }
-                                    } else {
-                                        Main.getInstance().getLogger().warning("Failed to remove record for " + plant.getMaterial() + " at " + location.toString());
-                                    }
-                                });
-
-                                // Random chance for a bee hive to be added
-                                if (Math.random() < Main.getInstance().getBeeHiveChance()) {
-                                    Random random = new Random();
-                                    boolean hivePlaced = false;
-
-                                    // Loop through blocks in a radius to find suitable leaf blocks
-                                    for (int dx = -2; dx <= 2; dx++) {
-                                        for (int dz = -2; dz <= 2; dz++) {
-                                            for (int dy = 0; dy <= 4; dy++) {
-                                                Block potentialLeafBlock = location.getWorld().getBlockAt(location.getBlockX() + dx, location.getBlockY() + dy, location.getBlockZ() + dz);
-                                                if (Tag.LEAVES.isTagged(potentialLeafBlock.getType()) && potentialLeafBlock.getRelative(BlockFace.DOWN).getType() == Material.AIR) {
-                                                    Block hiveLocation = potentialLeafBlock.getRelative(BlockFace.DOWN);
-                                                    if (Main.getInstance().debug) {
-                                                        Main.getInstance().getLogger().info("Placing hive at " + hiveLocation.getLocation().toString());
-                                                    }
-                                                    hiveLocation.setType(Material.BEE_NEST);
-                                                    int beeCount = random.nextInt((Main.getInstance().getMaxBeesPerHive() - Main.getInstance().getMinBeesPerHive()) + 1) + Main.getInstance().getMinBeesPerHive();
-                                                    for (int i = 0; i < beeCount; i++) {
-                                                        Bee bee = (Bee) block.getWorld().spawnEntity(hiveLocation.getLocation().add(0.5, 0, 0.5), EntityType.BEE);
-                                                        bee.setHive(hiveLocation.getLocation());
-                                                        if (Main.getInstance().debug) {
-                                                            Main.getInstance().getLogger().info("Bee Hive including " + beeCount + " bees, spawned at " + hiveLocation.getLocation().toString());
-                                                        }
-                                                    }
-                                                    hivePlaced = true;
-                                                    break;
-                                                }
-                                            }
-                                            if (hivePlaced) break;
-                                        }
-                                        if (hivePlaced) break;
-                                    }
-                                    if (!hivePlaced) {
-                                        if (Main.getInstance().debug) {
-                                            Main.getInstance().getLogger().info("No suitable location found for placing the bee hive.");
-                                        }
-                                    }
-                                }
-                            } else {
-                                if (Main.getInstance().debug) {
-                                    Main.getInstance().getLogger().warning("Failed to grow tree at " + location.toString());
-                                }
-                                // Remove the tree data from the database
-                                databaseManager.recordRemoval(location, plant.getMaterial(), success -> {
-                                    if (success) {
-                                        if (Main.getInstance().debug) {
-                                            Main.getInstance().getLogger().info("Successfully removed record for " + plant.getMaterial() + " at " + location.toString());
-                                        }
-                                    } else {
-                                        Main.getInstance().getLogger().warning("Failed to remove record for " + plant.getMaterial() + " at " + location.toString());
-                                    }
-                                });
-                            }
-                        }
-                    } else if (block.getBlockData() instanceof Ageable) {
-                        // Handle other ageable plants
-                        Ageable ageable = (Ageable) block.getBlockData();
-                        int maxAge = ageable.getMaximumAge();
-                        int newAge = (int) ((growthProgress / 100.0) * maxAge);
-                        ageable.setAge(newAge);
-                        block.setBlockData(ageable);
-                        if (Main.getInstance().debug) {
-                            Main.getInstance().getLogger().info("Updated Ageable block at " + location.toString() + " to growth progress " + growthProgress + "%.");
-                        }
-                    }
-                }
-
-                if (!wasLoaded) {
-                    chunk.unload();
-                }
+            } else {
+                plugin.getLogger().warning("Failed to remove record for " + material + " at " + location);
             }
         });
     }
 
+    private void maybePlaceBeeHive(Location location) {
+        if (ThreadLocalRandom.current().nextDouble() >= plugin.getBeeHiveChance()) {
+            return;
+        }
 
+        World world = location.getWorld();
+        boolean hivePlaced = false;
 
+        for (int dx = -2; dx <= 2 && !hivePlaced; dx++) {
+            for (int dz = -2; dz <= 2 && !hivePlaced; dz++) {
+                for (int dy = 0; dy <= 4; dy++) {
+                    Block potentialLeafBlock = world.getBlockAt(location.getBlockX() + dx, location.getBlockY() + dy, location.getBlockZ() + dz);
+                    if (!Tag.LEAVES.isTagged(potentialLeafBlock.getType()) || potentialLeafBlock.getRelative(BlockFace.DOWN).getType() != Material.AIR) {
+                        continue;
+                    }
+
+                    Block hiveBlock = potentialLeafBlock.getRelative(BlockFace.DOWN);
+                    if (plugin.debug) {
+                        plugin.getLogger().info("Placing hive at " + hiveBlock.getLocation());
+                    }
+
+                    hiveBlock.setType(Material.BEE_NEST);
+                    spawnBees(hiveBlock);
+                    hivePlaced = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hivePlaced && plugin.debug) {
+            plugin.getLogger().info("No suitable location found for placing the bee hive.");
+        }
+    }
+
+    private void spawnBees(Block hiveBlock) {
+        int minBees = Math.min(plugin.getMinBeesPerHive(), plugin.getMaxBeesPerHive());
+        int maxBees = Math.max(plugin.getMinBeesPerHive(), plugin.getMaxBeesPerHive());
+        int beeCount = ThreadLocalRandom.current().nextInt(minBees, maxBees + 1);
+        Location spawnLocation = hiveBlock.getLocation().add(0.5, 0, 0.5);
+
+        for (int i = 0; i < beeCount; i++) {
+            Bee bee = (Bee) hiveBlock.getWorld().spawnEntity(spawnLocation, EntityType.BEE);
+            bee.setHive(hiveBlock.getLocation());
+        }
+
+        if (plugin.debug) {
+            plugin.getLogger().info("Bee Hive including " + beeCount + " bees, spawned at " + hiveBlock.getLocation());
+        }
+    }
+
+    private boolean isSaplingLike(Material material) {
+        String materialName = material.name();
+        return materialName.endsWith("_SAPLING") || material == Material.MANGROVE_PROPAGULE;
+    }
 
     private TreeType getTreeTypeFromMaterial(Material material) {
         switch (material) {
@@ -180,29 +214,32 @@ public class GrowthUpdateTask extends BukkitRunnable {
             case CHERRY_SAPLING:
                 return TreeType.CHERRY;
             case MANGROVE_PROPAGULE:
-                // Read the tall mangrove change percentage from the config
-                int tallMangroveChange = Main.getInstance().GetTallMangroveChange();
-                if (Main.getInstance().debug) {
-                    Main.getInstance().getLogger().info("fetching tall Mangrove Change = " + tallMangroveChange);
+                int tallMangroveChance = plugin.GetTallMangroveChange();
+                if (plugin.debug) {
+                    plugin.getLogger().info("fetching tall Mangrove Change = " + tallMangroveChance);
                 }
-                // Generate a random value between 0 and 99 inclusive
-                Random random = new Random(System.currentTimeMillis());
-                int randomValue = random.nextInt(100);
-
-                // Determine the tree type based on the generated value
-                if (randomValue < tallMangroveChange) {
-                    if (Main.getInstance().debug) {
-                        Main.getInstance().getLogger().info("Growing Tall Mangrove");
+                if (ThreadLocalRandom.current().nextInt(100) < tallMangroveChance) {
+                    if (plugin.debug) {
+                        plugin.getLogger().info("Growing Tall Mangrove");
                     }
                     return TreeType.TALL_MANGROVE;
-                } else {
-                    if (Main.getInstance().debug) {
-                        Main.getInstance().getLogger().info("Growing a normal Mangrove");
-                    }
-                    return TreeType.MANGROVE;
                 }
+                if (plugin.debug) {
+                    plugin.getLogger().info("Growing a normal Mangrove");
+                }
+                return TreeType.MANGROVE;
             default:
-                return TreeType.TREE; // Default to oak sapling behavior
+                return TreeType.TREE;
+        }
+    }
+
+    private static class GrowthUpdate {
+        private final PlantData plant;
+        private final int growthProgress;
+
+        private GrowthUpdate(PlantData plant, int growthProgress) {
+            this.plant = plant;
+            this.growthProgress = growthProgress;
         }
     }
 }

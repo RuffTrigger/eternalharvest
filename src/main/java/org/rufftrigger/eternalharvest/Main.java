@@ -1,8 +1,14 @@
 package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Main extends JavaPlugin {
@@ -11,45 +17,39 @@ public class Main extends JavaPlugin {
     private DatabaseManager databaseManager;
     private Logger logger;
     private int updateIntervalSeconds;
-    public boolean debug; // Variable to store debug mode status
+    public boolean debug;
     private double beeHiveChance;
     private int minBeesPerHive;
     private int maxBeesPerHive;
     private int tallMangroveChange;
     private int maintenanceInterval;
     private int vacuumInterval;
+    private Map<Material, Integer> growthTimes = Collections.emptyMap();
 
     @Override
     public void onEnable() {
         instance = this;
         logger = getLogger();
 
-        // Save default config if not exists
-        this.saveDefaultConfig();
+        saveDefaultConfig();
         logger.info("Configurations saved.");
 
-        // Load config values
         loadConfigValues();
 
-        // Initialize database
-        this.databaseManager = new DatabaseManager();
-        this.databaseManager.setupDatabase();
+        databaseManager = new DatabaseManager();
+        databaseManager.setupDatabase();
         logger.info("Database initialized.");
 
-        // Register events
         Bukkit.getPluginManager().registerEvents(new PlantListener(databaseManager), this);
         logger.info("Event listeners registered.");
 
-        // Start growth update task
-        new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0, updateIntervalSeconds * 20); // Convert seconds to ticks
+        new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0L, updateIntervalSeconds * 20L);
         logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
 
-        // Start maintenance task
-        new MaintenanceTask(databaseManager).runTaskTimerAsynchronously(this, 0, maintenanceInterval * 20); // Convert seconds to ticks
+        new MaintenanceTask(databaseManager).runTaskTimerAsynchronously(this, 0L, maintenanceInterval * 20L);
         logger.info("Maintenance Task started with interval " + maintenanceInterval + " seconds.");
 
-        // Start vacuumDatabase
-        new VacuumDatabaseScheduler(databaseManager).runTaskTimerAsynchronously(this, 0, vacuumInterval * 20); // Convert seconds to ticks
+        new VacuumDatabaseScheduler(databaseManager).runTaskTimerAsynchronously(this, 0L, vacuumInterval * 20L);
         logger.info("VacuumDatabaseScheduler started with interval " + vacuumInterval + " seconds.");
 
         logger.info("Plugin enabled.");
@@ -57,7 +57,6 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Close database connection
         if (databaseManager != null) {
             databaseManager.closeConnection();
             logger.info("Database connection closed.");
@@ -67,15 +66,15 @@ public class Main extends JavaPlugin {
     }
 
     private void loadConfigValues() {
-        this.updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300); // Default to 300 seconds (5 minutes) if not specified
-        this.debug = getConfig().getBoolean("debug", false); // Read debug mode value
-        this.beeHiveChance = getConfig().getDouble("bee-hive-chance", 0.05); // Default to 5% chance if not specified
-        this.minBeesPerHive = getConfig().getInt("min-bees-per-hive", 1); // Default to 1 bee if not specified
-        this.maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3); // Default to 3 bees if not specified
-        this.tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30); // Default will be set to 30
-        this.maintenanceInterval = getConfig().getInt("maintenance-interval", 600); // Default to 5 minutes
-        // Schedule database vacuuming task (e.g., every hour)
-        this.vacuumInterval = getConfig().getInt("vacuum-interval", 10800); // Default to 3 hour
+        updateIntervalSeconds = getConfig().getInt("update-interval-seconds", 300);
+        debug = getConfig().getBoolean("debug", false);
+        beeHiveChance = getConfig().getDouble("bee-hive-chance", 0.05);
+        minBeesPerHive = getConfig().getInt("min-bees-per-hive", 1);
+        maxBeesPerHive = getConfig().getInt("max-bees-per-hive", 3);
+        tallMangroveChange = getConfig().getInt("TALL_MANGROVE_CHANGE", 30);
+        maintenanceInterval = getConfig().getInt("maintenance-interval", 600);
+        vacuumInterval = getConfig().getInt("vacuum-interval", 10800);
+        growthTimes = loadGrowthTimes();
 
         if (debug) {
             logger.info("Debug mode is enabled.");
@@ -83,6 +82,48 @@ public class Main extends JavaPlugin {
             logger.info("Debug mode is disabled.");
         }
     }
+
+    private Map<Material, Integer> loadGrowthTimes() {
+        EnumMap<Material, Integer> loadedGrowthTimes = new EnumMap<>(Material.class);
+        ConfigurationSection section = getConfig().getConfigurationSection("growth-times");
+
+        if (section == null) {
+            logger.warning("No growth-times section found in config.yml.");
+            return Collections.emptyMap();
+        }
+
+        for (String key : section.getKeys(false)) {
+            Material material = Material.matchMaterial(key);
+            if (material == null) {
+                material = Material.matchMaterial(key.toUpperCase(Locale.ROOT));
+            }
+
+            if (material == null) {
+                logger.warning("Ignoring unknown material in growth-times: " + key);
+                continue;
+            }
+
+            int growthTime = section.getInt(key, -1);
+            if (growthTime <= 0) {
+                logger.warning("Ignoring invalid growth time for " + key + ": " + growthTime);
+                continue;
+            }
+
+            loadedGrowthTimes.put(material, growthTime);
+        }
+
+        logger.info("Loaded " + loadedGrowthTimes.size() + " plant growth time entries.");
+        return Collections.unmodifiableMap(loadedGrowthTimes);
+    }
+
+    public int getGrowthTime(Material material) {
+        return growthTimes.getOrDefault(material, -1);
+    }
+
+    public boolean isTrackedPlant(Material material) {
+        return growthTimes.containsKey(material);
+    }
+
     public double getBeeHiveChance() {
         return beeHiveChance;
     }
@@ -95,7 +136,7 @@ public class Main extends JavaPlugin {
         return maxBeesPerHive;
     }
 
-    public int GetTallMangroveChange () {
+    public int GetTallMangroveChange() {
         return tallMangroveChange;
     }
 
