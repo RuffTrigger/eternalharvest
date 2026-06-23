@@ -26,31 +26,25 @@ public class LocationUtil {
     }
 
     public static String normalizeKey(String locationString) {
-        if (locationString == null || locationString.isBlank()) {
-            return locationString;
+        LocationParts parts = parseLocationParts(locationString);
+        if (parts != null) {
+            return toKey(parts.worldName, parts.x, parts.y, parts.z);
         }
 
-        LocationParts stableParts = parseStableKey(locationString);
-        if (stableParts != null) {
-            return toKey(stableParts.worldName, stableParts.x, stableParts.y, stableParts.z);
-        }
-
-        Matcher matcher = LEGACY_LOCATION_PATTERN.matcher(locationString);
-        if (matcher.matches()) {
-            return toKey(
-                    matcher.group(1),
-                    parseBlockCoordinate(matcher.group(2)),
-                    parseBlockCoordinate(matcher.group(3)),
-                    parseBlockCoordinate(matcher.group(4))
-            );
-        }
-
-        logWarning("Could not normalize location string: " + locationString);
         return locationString;
     }
 
+    public static boolean isInChunk(String locationString, String worldName, int chunkX, int chunkZ) {
+        LocationParts parts = parseLocationParts(locationString);
+        if (parts == null) {
+            return false;
+        }
+
+        return parts.worldName.equals(worldName) && (parts.x >> 4) == chunkX && (parts.z >> 4) == chunkZ;
+    }
+
     public static Location fromString(String locationString) {
-        LocationParts parts = parseStableKey(normalizeKey(locationString));
+        LocationParts parts = parseLocationParts(locationString);
         if (parts == null) {
             logWarning("Error parsing location string: " + locationString);
             return null;
@@ -63,6 +57,30 @@ public class LocationUtil {
         }
 
         return new Location(world, parts.x, parts.y, parts.z);
+    }
+
+    private static LocationParts parseLocationParts(String locationString) {
+        if (locationString == null || locationString.isBlank()) {
+            return null;
+        }
+
+        LocationParts stableParts = parseStableKey(locationString);
+        if (stableParts != null) {
+            return stableParts;
+        }
+
+        Matcher matcher = LEGACY_LOCATION_PATTERN.matcher(locationString);
+        if (matcher.matches()) {
+            return new LocationParts(
+                    matcher.group(1),
+                    parseBlockCoordinate(matcher.group(2)),
+                    parseBlockCoordinate(matcher.group(3)),
+                    parseBlockCoordinate(matcher.group(4))
+            );
+        }
+
+        logWarning("Could not normalize location string: " + locationString);
+        return null;
     }
 
     private static String toKey(String worldName, int x, int y, int z) {

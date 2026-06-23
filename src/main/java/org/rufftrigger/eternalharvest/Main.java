@@ -40,10 +40,11 @@ public class Main extends JavaPlugin {
         databaseManager.setupDatabase();
         logger.info("Database initialized.");
 
-        Bukkit.getPluginManager().registerEvents(new PlantListener(databaseManager), this);
+        GrowthUpdateTask growthUpdateTask = new GrowthUpdateTask(databaseManager);
+        Bukkit.getPluginManager().registerEvents(new PlantListener(databaseManager, growthUpdateTask), this);
         logger.info("Event listeners registered.");
 
-        new GrowthUpdateTask(databaseManager).runTaskTimerAsynchronously(this, 0L, updateIntervalSeconds * 20L);
+        growthUpdateTask.runTaskTimerAsynchronously(this, 0L, updateIntervalSeconds * 20L);
         logger.info("Growth update task started with interval " + updateIntervalSeconds + " seconds.");
 
         new MaintenanceTask(databaseManager).runTaskTimerAsynchronously(this, 0L, maintenanceInterval * 20L);

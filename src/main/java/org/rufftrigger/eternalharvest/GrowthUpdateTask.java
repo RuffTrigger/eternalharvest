@@ -1,6 +1,7 @@
 package org.rufftrigger.eternalharvest;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Tag;
@@ -31,9 +32,38 @@ public class GrowthUpdateTask extends BukkitRunnable {
 
     @Override
     public void run() {
-        List<PlantData> plants = databaseManager.getAllPlants();
+        List<GrowthUpdate> worldUpdates = prepareGrowthUpdates(databaseManager.getAllPlants(), null, 0, 0);
+        if (!worldUpdates.isEmpty()) {
+            Bukkit.getScheduler().runTask(plugin, () -> applyGrowthToWorld(worldUpdates));
+        }
+    }
+
+    public void catchUpChunk(Chunk chunk) {
+        String worldName = chunk.getWorld().getName();
+        int chunkX = chunk.getX();
+        int chunkZ = chunk.getZ();
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                List<GrowthUpdate> worldUpdates = prepareGrowthUpdates(databaseManager.getAllPlants(), worldName, chunkX, chunkZ);
+                if (worldUpdates.isEmpty()) {
+                    return;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    World world = Bukkit.getWorld(worldName);
+                    if (world != null && world.isChunkLoaded(chunkX, chunkZ)) {
+                        applyGrowthToWorld(worldUpdates);
+                    }
+                });
+            }
+        }.runTaskAsynchronously(plugin);
+    }
+
+    private List<GrowthUpdate> prepareGrowthUpdates(List<PlantData> plants, String worldName, int chunkX, int chunkZ) {
         if (plants.isEmpty()) {
-            return;
+            return List.of();
         }
 
         long currentTimeSeconds = System.currentTimeMillis() / 1000;
@@ -41,6 +71,10 @@ public class GrowthUpdateTask extends BukkitRunnable {
         List<GrowthUpdate> worldUpdates = new ArrayList<>(plants.size());
 
         for (PlantData plant : plants) {
+            if (worldName != null && !LocationUtil.isInChunk(plant.getLocation(), worldName, chunkX, chunkZ)) {
+                continue;
+            }
+
             int growthTime = plant.getGrowthTime();
             if (growthTime <= 0) {
                 continue;
@@ -58,10 +92,7 @@ public class GrowthUpdateTask extends BukkitRunnable {
         }
 
         databaseManager.updateGrowthProgressBatch(progressUpdates);
-
-        if (!worldUpdates.isEmpty()) {
-            Bukkit.getScheduler().runTask(plugin, () -> applyGrowthToWorld(worldUpdates));
-        }
+        return worldUpdates;
     }
 
     private void applyGrowthToWorld(List<GrowthUpdate> updates) {

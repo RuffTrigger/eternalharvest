@@ -13,15 +13,23 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 
 public class PlantListener implements Listener {
 
     private final DatabaseManager databaseManager;
+    private final GrowthUpdateTask growthUpdateTask;
     private final Main plugin;
 
-    public PlantListener(DatabaseManager databaseManager) {
+    public PlantListener(DatabaseManager databaseManager, GrowthUpdateTask growthUpdateTask) {
         this.databaseManager = databaseManager;
+        this.growthUpdateTask = growthUpdateTask;
         this.plugin = Main.getInstance();
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        growthUpdateTask.catchUpChunk(event.getChunk());
     }
 
     @EventHandler
