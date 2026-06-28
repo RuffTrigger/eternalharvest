@@ -1,8 +1,15 @@
 # src/main/resources/config.yml
 
-update-interval-seconds: 60 # default is 60
+config-version: 2
+
+update-interval-seconds: 15 # default is 15
 maintenance-interval: 600 # default is 600
 vacuum-interval: 10800 # default is 10800
+
+growth-visuals:
+  particles-on-growth: true
+  particle-count: 4
+  random-growth-offset-seconds: 30
 
 growth-times:
   wheat: 1200
